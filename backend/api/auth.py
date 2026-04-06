@@ -15,20 +15,49 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserSchema)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == user_in.email))
-    if result.scalars().first():
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this user name already exists in the system.",
+    print("\n========== REGISTER API HIT ==========")
+    print("Incoming Email:", user_in.email)
+
+    try:
+        print("➡️ Checking if user already exists...")
+        result = await db.execute(select(User).where(User.email == user_in.email))
+        existing_user = result.scalars().first()
+        print("➡️ Existing user:", existing_user)
+
+        if existing_user:
+            print("❌ User already exists")
+            raise HTTPException(
+                status_code=400,
+                detail="The user already exists.",
+            )
+
+        print("➡️ Hashing password...")
+        hashed_password = get_password_hash(user_in.password)
+        print("➡️ Password hashed successfully")
+
+        print("➡️ Creating user object...")
+        user = User(
+            email=user_in.email,
+            hashed_password=hashed_password,
         )
-    user = User(
-        email=user_in.email,
-        hashed_password=get_password_hash(user_in.password),
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+
+        print("➡️ Adding user to DB session...")
+        db.add(user)
+
+        print("➡️ Committing to database...")
+        await db.commit()
+
+        print("➡️ Refreshing user...")
+        await db.refresh(user)
+
+        print("✅ USER CREATED SUCCESSFULLY:", user.id)
+        print("=====================================\n")
+
+        return user
+
+    except Exception as e:
+        print("🔥 ERROR DURING REGISTRATION:", str(e))
+        raise
 
 @router.post("/login")
 async def login(
