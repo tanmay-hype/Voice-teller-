@@ -1,0 +1,119 @@
+🔐 ENV & SECRETS
+=========================
+
+.env
+.env.*
+*.env
+
+=========================
+🐍 PYTHON (FastAPI Backend)
+=========================
+
+pycache/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+Virtual environments
+
+venv/
+env/
+ENV/
+.venv/
+
+Python build
+
+build/
+dist/
+*.egg-info/
+
+Logs
+
+*.log
+
+=========================
+⚛️ FRONTEND (React + Vite)
+=========================
+
+node_modules/
+dist/
+.vite/
+*.local
+
+=========================
+🐳 DOCKER
+=========================
+
+docker-compose.override.yml
+*.pid
+
+=========================
+🗄️ DATABASE
+=========================
+
+*.db
+*.sqlite3
+
+=========================
+🧪 TEST / CACHE
+=========================
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+=========================
+🧠 IDE / EDITOR FILES
+=========================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+=========================
+🖥️ OS FILES
+=========================
+
+.DS_Store
+Thumbs.db
+
+=========================
+📦 MISC
+=========================
+
+*.tar
+*.gz
+*.zip
+
+=========================
+🚫 OPTIONAL (Uncomment if needed)
+=========================
+alembic/versions/
+migrations/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
