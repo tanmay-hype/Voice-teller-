@@ -1,8 +1,10 @@
 import uuid
 from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from core.database import Base
 from sqlalchemy.sql import func
+
 
 class User(Base):
     __tablename__ = "users"
@@ -13,3 +15,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # 🔥 RELATIONSHIPS
+    stories = relationship("Story", back_populates="owner", cascade="all, delete")
+    voices = relationship("Voice", back_populates="owner", cascade="all, delete")
