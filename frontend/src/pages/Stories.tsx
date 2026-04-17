@@ -1,146 +1,121 @@
-import React, { useState } from 'react';
+// src/pages/Stories.tsx
+
+import React, { useState, useEffect } from 'react';
 import { useStoryStore } from '../store/storyStore';
 import apiClient from '../services/apiClient';
-import { BookOpen, Plus, X, Loader2 } from 'lucide-react';
+import { BookOpen, Plus, Loader2 } from 'lucide-react';
 
 const Stories: React.FC = () => {
-  const { stories, voices, addStory } = useStoryStore();
+  const { stories, setStories, voices, addStory } = useStoryStore();
+
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
   const [prompt, setPrompt] = useState('');
   const [voiceId, setVoiceId] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    apiClient.get('/stories/')
+      .then(res => setStories(res.data))
+      .catch(() => {});
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !prompt) return;
 
     setLoading(true);
     try {
-      const res = await apiClient.post('/stories', {
+      const res = await apiClient.post('/stories/', {
         title,
         content: prompt,
-        voice_id: voiceId || null,
+        voice_id: voiceId || null
       });
 
       addStory(res.data);
       setShowModal(false);
-      setTitle('');
-      setPrompt('');
-      setVoiceId('');
-    } catch (error) {
-      console.error("Failed to generate story", error);
-      alert("Failed to generate story");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto px-4">
-      {/* Header */}
+    <div className="space-y-6 max-w-6xl mx-auto">
+
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-            Stories
-          </h1>
-          <p className="text-slate-400 mt-2">
-            Generate and listen to AI-powered stories.
-          </p>
-        </div>
+        <h1 className="text-3xl text-white font-bold">Stories</h1>
 
         <button
           onClick={() => setShowModal(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-white flex items-center"
+          className="bg-emerald-600 px-4 py-2 rounded-xl text-white flex items-center"
         >
-          <Plus className="w-5 h-5 mr-2" />
-          Generate
+          <Plus className="mr-2" /> New Story
         </button>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
         {stories.map((story) => (
-          <div
-            key={story.id}
-            className="group bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-5 flex flex-col hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10 transition-all"
-          >
-            <BookOpen className="text-emerald-400" />
+          <div key={story.id}
+            className="relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-slate-700 transition">
 
-            <h3 className="mt-4 text-lg font-semibold text-white">
-              {story.title}
-            </h3>
+            {/* 🔥 BACKGROUND ICON */}
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+              <BookOpen className="w-24 h-24 text-emerald-500" />
+            </div>
 
-            <p className="text-slate-400 text-sm mt-2 flex-1 line-clamp-3">
-              {story.content}
-            </p>
-
-            {/* Audio */}
-            {story.audio_url && (
-              <audio controls className="mt-4">
-                <source
-                  src={`http://localhost:8000${story.audio_url}`}
-                />
-              </audio>
-            )}
-
-            {!story.audio_url && story.voice_id !== undefined && (
-              <div className="mt-4 flex items-center text-sm text-slate-500">
-                <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                Generating audio...
+            <div className="relative">
+              <div className="p-3 bg-emerald-500/10 rounded-xl w-fit">
+                <BookOpen className="w-6 h-6 text-emerald-400" />
               </div>
-            )}
+
+              <h3 className="mt-4 text-white font-semibold">
+                {story.title}
+              </h3>
+
+              <p className="text-slate-400 text-sm mt-2 line-clamp-3">
+                {story.content}
+              </p>
+
+              {story.audio_url && (
+                <audio controls className="mt-4 w-full">
+                  <source src={`http://localhost:8000${story.audio_url}`} />
+                </audio>
+              )}
+            </div>
           </div>
         ))}
-
-        {stories.length === 0 && (
-          <div className="col-span-full text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
-            <BookOpen className="mx-auto h-12 w-12 text-slate-600" />
-            <p className="text-slate-400 mt-2">No stories yet</p>
-          </div>
-        )}
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-white text-lg mb-4">Generate Story</h3>
-
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md">
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Title"
-                className="w-full bg-slate-800 px-3 py-2 rounded text-white"
+                onChange={e => setTitle(e.target.value)}
+                className="w-full bg-slate-800 p-2 text-white rounded"
               />
 
               <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Story prompt..."
-                className="w-full bg-slate-800 px-3 py-2 rounded text-white"
+                placeholder="Prompt"
+                onChange={e => setPrompt(e.target.value)}
+                className="w-full bg-slate-800 p-2 text-white rounded"
               />
 
               <select
-                value={voiceId}
-                onChange={(e) => setVoiceId(e.target.value)}
-                className="w-full bg-slate-800 px-3 py-2 rounded text-white"
+                onChange={e => setVoiceId(e.target.value)}
+                className="w-full bg-slate-800 p-2 text-white rounded"
               >
                 <option value="">No voice</option>
-                {voices.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
+                {voices.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
 
-              <button
-                type="submit"
-                disabled={loading || !title || !prompt}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded text-white flex justify-center"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : 'Generate'}
+              <button className="bg-emerald-600 w-full py-2 rounded">
+                {loading ? "Generating..." : "Generate"}
               </button>
             </form>
           </div>
@@ -149,5 +124,5 @@ const Stories: React.FC = () => {
     </div>
   );
 };
- 
+
 export default Stories;
