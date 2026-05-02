@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import apiClient from '../services/apiClient';
 import { Mic2, Loader2 } from 'lucide-react';
 
@@ -26,75 +27,79 @@ const Register: React.FC = () => {
       });
       // Redirect to login
       navigate('/login');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError<{ detail?: string }>(err)) {
+        setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-[var(--bg-primary)] to-blue-50 page-enter">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md scale-in">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <div className="w-16 h-16 bg-[var(--accent)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--accent)]/20">
             <Mic2 className="w-8 h-8 text-white" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-[var(--text-strong)] tracking-tight">
           Create an account
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-400">
+        <p className="mt-2 text-center text-sm text-[var(--text-muted)]">
           Join us to start generating voice stories
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-slate-900/50 backdrop-blur-xl py-8 px-4 shadow-2xl border border-slate-800 sm:rounded-2xl sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="card bg-white border border-[var(--border)] shadow-xl sm:rounded-2xl">
           <form className="space-y-6" onSubmit={handleRegister}>
             {error && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
             
             <div>
-              <label className="block text-sm font-medium text-slate-300">Email address</label>
+              <label className="block text-sm font-medium text-[var(--text-strong)]">Email address</label>
               <div className="mt-1">
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-700 bg-slate-800/50 rounded-lg shadow-sm placeholder-slate-400 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="input-field"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Password</label>
+              <label className="block text-sm font-medium text-[var(--text-strong)]">Password</label>
               <div className="mt-1">
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-700 bg-slate-800/50 rounded-lg shadow-sm placeholder-slate-400 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="input-field"
                   placeholder="••••••••"
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-300">Confirm Password</label>
+              <label className="block text-sm font-medium text-[var(--text-strong)]">Confirm Password</label>
               <div className="mt-1">
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-700 bg-slate-800/50 rounded-lg shadow-sm placeholder-slate-400 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="input-field"
                   placeholder="••••••••"
                 />
               </div>
@@ -104,7 +109,7 @@ const Register: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary w-full flex justify-center items-center gap-2 text-white font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Register'}
               </button>
@@ -112,8 +117,8 @@ const Register: React.FC = () => {
           </form>
 
           <div className="mt-6 text-center text-sm">
-            <span className="text-slate-400">Already have an account? </span>
-            <Link to="/login" className="font-medium text-blue-500 hover:text-blue-400">
+            <span className="text-[var(--text-muted)]">Already have an account? </span>
+            <Link to="/login" className="font-medium text-[var(--accent)] hover:text-[var(--accent-600)]">
               Sign in
             </Link>
           </div>

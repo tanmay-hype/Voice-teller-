@@ -3,13 +3,18 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
+# ✅ Base model (used internally + responses)
 class ConversationBase(BaseModel):
     role: str
     content: str
 
-class ConversationCreate(ConversationBase):
-    pass
 
+# ✅ Input model (what frontend sends)
+class ConversationCreate(BaseModel):
+    content: str   # 🔥 ONLY content, no role
+
+
+# ✅ DB model
 class ConversationInDBBase(ConversationBase):
     id: UUID
     user_id: UUID
@@ -17,5 +22,7 @@ class ConversationInDBBase(ConversationBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ✅ Final response model
 class Conversation(ConversationInDBBase):
     pass

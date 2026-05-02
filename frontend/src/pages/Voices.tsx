@@ -1,13 +1,16 @@
 // src/pages/Voices.tsx
 
 import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useStoryStore } from '../store/storyStore';
 import apiClient from '../services/apiClient';
-import { Mic2, Plus, X, Loader2 } from 'lucide-react';
+import { Mic2, Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const Voices: React.FC = () => {
-  const { voices, setVoices, addVoice } = useStoryStore();
+  const voices = useStoryStore((s) => s.voices);
+  const setVoices = useStoryStore((s) => s.setVoices);
+  const addVoice = useStoryStore((s) => s.addVoice);
   const location = useLocation();
 
   const [showModal, setShowModal] = useState(location.pathname.includes('/voices/new'));
@@ -16,11 +19,13 @@ const Voices: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const reduce = useReducedMotion();
+
   useEffect(() => {
     apiClient.get('/voices/')
       .then(res => setVoices(res.data))
       .catch(() => {});
-  }, []);
+  }, [setVoices]);
 
   useEffect(() => {
     if (location.pathname.includes('/voices/new')) {
@@ -75,9 +80,14 @@ const Voices: React.FC = () => {
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {voices.map((voice) => (
-          <div key={voice.id}
-            className= "glass rounded-2xl p-5 relative overflow-hidden group">
+        {voices.map((voice, i) => (
+          <motion.div key={voice.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduce ? 0 : i * 0.05, duration: 0.45 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.995 }}
+            className= "glass rounded-2xl p-5 relative overflow-hidden group cursor-pointer">
             
             {/* 🔥 BACKGROUND ICON */}
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
@@ -97,7 +107,7 @@ const Voices: React.FC = () => {
                 {voice.description || 'No description'}
               </p>
             </div>
-          </div>
+          </motion.div>
         ))}
 
         {voices.length === 0 && (

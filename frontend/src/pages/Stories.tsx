@@ -1,12 +1,16 @@
 // src/pages/Stories.tsx
 
 import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useStoryStore } from '../store/storyStore';
 import apiClient from '../services/apiClient';
-import { BookOpen, Plus, Loader2 } from 'lucide-react';
+import { BookOpen, Plus } from 'lucide-react';
 
 const Stories: React.FC = () => {
-  const { stories, setStories, voices, addStory } = useStoryStore();
+  const stories = useStoryStore((s) => s.stories);
+  const voices = useStoryStore((s) => s.voices);
+  const setStories = useStoryStore((s) => s.setStories);
+  const addStory = useStoryStore((s) => s.addStory);
 
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -14,11 +18,13 @@ const Stories: React.FC = () => {
   const [voiceId, setVoiceId] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const reduce = useReducedMotion();
+
   useEffect(() => {
     apiClient.get('/stories/')
       .then(res => setStories(res.data))
       .catch(() => {});
-  }, []);
+  }, [setStories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +61,13 @@ const Stories: React.FC = () => {
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {stories.map((story) => (
-          <div key={story.id}
-            className="relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-slate-700 transition">
+        {stories.map((story, i) => (
+          <motion.div key={story.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduce ? 0 : i * 0.06, duration: 0.45 }}
+            whileHover={{ scale: 1.02 }}
+            className="relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-slate-700 transition cursor-pointer">
 
             {/* 🔥 BACKGROUND ICON */}
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
@@ -78,12 +88,14 @@ const Stories: React.FC = () => {
               </p>
 
               {story.audio_url && (
-                <audio controls className="mt-4 w-full">
-                  <source src={`http://localhost:8000${story.audio_url}`} />
-                </audio>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-4 w-full">
+                  <audio controls className="w-full">
+                    <source src={`http://localhost:8000${story.audio_url}`} />
+                  </audio>
+                </motion.div>
               )}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 

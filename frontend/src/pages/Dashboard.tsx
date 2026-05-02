@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import apiClient from '../services/apiClient';
 import { useStoryStore } from '../store/storyStore';
 import { BookOpen, Mic2, PlusCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { stories, voices, setStories, setVoices } = useStoryStore();
+  const stories = useStoryStore((s) => s.stories);
+  const voices = useStoryStore((s) => s.voices);
+  const setStories = useStoryStore((s) => s.setStories);
+  const setVoices = useStoryStore((s) => s.setVoices);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -25,72 +29,76 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [setStories, setVoices]);
+
+  const reduce = useReducedMotion();
 
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-blue-500/70 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: reduce ? 0 : 0.45 }}
+      className="max-w-6xl mx-auto space-y-8"
+    >
       <div>
-        <h1 className="text-3xl font-bold text-white">Overview</h1>
-        <p className="text-slate-400 mt-2">Welcome to your AI Voice Storytelling platform.</p>
+        <h1 className="text-4xl font-bold text-[var(--text-strong)]">Overview</h1>
+        <p className="text-[var(--text-muted)] mt-2">Welcome to your AI Voice Storytelling platform.</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        
-        <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
-          <h2 className="text-white text-xl flex items-center gap-2">
-            <Mic2 /> Voices
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.995 }} className="card transition-shadow">
+          <h2 className="text-[var(--text-strong)] text-xl flex items-center gap-2 font-semibold">
+            <Mic2 className="text-[var(--accent)]" /> Voices
           </h2>
-          <p className="text-3xl text-white mt-4">{voices.length}</p>
-          <Link to="/dashboard/voices" className="text-blue-400 mt-4 inline-block">
-            Manage →
+          <p className="text-4xl text-[var(--accent)] font-bold mt-4">{voices.length}</p>
+          <Link to="/dashboard/voices" className="text-[var(--accent)] mt-4 inline-block font-medium hover:gap-2 flex items-center transition-all">
+            Manage <span>→</span>
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
-          <h2 className="text-white text-xl flex items-center gap-2">
-            <BookOpen /> Stories
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.995 }} className="card transition-shadow">
+          <h2 className="text-[var(--text-strong)] text-xl flex items-center gap-2 font-semibold">
+            <BookOpen className="text-[var(--accent)]" /> Stories
           </h2>
-          <p className="text-3xl text-white mt-4">{stories.length}</p>
-          <Link to="/dashboard/stories" className="text-emerald-400 mt-4 inline-block">
-            View →
+          <p className="text-4xl text-[var(--accent)] font-bold mt-4">{stories.length}</p>
+          <Link to="/dashboard/stories" className="text-[var(--accent)] mt-4 inline-block font-medium hover:gap-2 flex items-center transition-all">
+            View <span>→</span>
           </Link>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Quick Actions */}
       <div>
-        <h2 className="text-white text-xl mb-4">Quick Actions</h2>
-        <div className="flex gap-4">
-
-          <button
+        <h2 className="text-[var(--text-strong)] text-xl mb-4 font-semibold">Quick Actions</h2>
+        <div className="flex gap-4 flex-wrap">
+          <motion.button
             onClick={() => navigate('/dashboard/stories', { state: { openModal: true } })}
-            className="px-5 py-3 bg-blue-600 text-white rounded-xl flex items-center"
+            whileHover={{ y: -3 }}
+            className="btn-primary flex items-center gap-2 hover:shadow-lg"
           >
-            <PlusCircle className="mr-2" />
+            <PlusCircle className="w-4 h-4" />
             New Story
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={() => navigate('/dashboard/voices', { state: { openModal: true } })}
-            className="px-5 py-3 bg-slate-800 text-white rounded-xl flex items-center"
+            whileHover={{ y: -2 }}
+            className="btn-secondary flex items-center gap-2 hover:shadow-md"
           >
-            <Mic2 className="mr-2" />
+            <Mic2 className="w-4 h-4" />
             Clone Voice
-          </button>
-
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

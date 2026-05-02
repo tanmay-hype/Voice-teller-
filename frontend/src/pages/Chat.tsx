@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import apiClient from '../services/apiClient';
 import { Send, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
@@ -14,6 +15,9 @@ const Chat: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     // Load history
@@ -44,9 +48,8 @@ const Chat: React.FC = () => {
     setLoading(true);
 
     try {
-      const res = await apiClient.post('/chat', {
-        role: 'user',
-        content: userMessage
+      const res = await apiClient.post('/chat/', {
+       content: userMessage
       });
       setMessages(prev => [...prev, { role: 'assistant', content: res.data.content }]);
     } catch (e) {
@@ -58,58 +61,75 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto bg-slate-900/50 backdrop-blur border border-slate-800 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-500 shadow-2xl">
-      <div className="p-4 border-b border-slate-800 bg-slate-900 shrink-0">
-        <h2 className="text-xl font-semibold text-white">AI Storytelling Assistant</h2>
-        <p className="text-xs text-slate-400 mt-1">Chat to brainstorm ideas or discuss storytelling techniques.</p>
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto bg-[var(--surface)] backdrop-blur border border-[var(--border)] rounded-2xl overflow-hidden scale-in shadow-xl">
+      <div className="p-4 border-b border-[var(--border)] bg-white shrink-0">
+        <h2 className="text-xl font-semibold text-[var(--text-strong)]">AI Storytelling Assistant</h2>
+        <p className="text-xs text-[var(--text-muted)] mt-1">Chat to brainstorm ideas or discuss storytelling techniques.</p>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth pb-20">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth pb-20 bg-gradient-to-b from-white to-blue-50">
         {messages.length === 0 && (
-          <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+          <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm fade-in">
             Send a message to start brainstorming!
           </div>
         )}
         {messages.map((msg, idx) => (
-          <div key={idx} className={clsx("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
+          <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.28, delay: reduce ? 0 : idx * 0.03 }} className={clsx("flex slide-up", msg.role === 'user' ? "justify-end" : "justify-start")}>
             <div className={clsx(
-              "max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed",
+              "max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed shadow-md",
               msg.role === 'user' 
-                ? "bg-blue-600 text-white rounded-tr-sm" 
-                : "bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm"
+                ? "bg-[var(--accent)] text-white rounded-tr-sm" 
+                : "bg-[var(--hover-bg)] border border-[var(--border)] text-[var(--text-primary)] rounded-tl-sm"
             )}>
               {msg.content}
             </div>
-          </div>
+          </motion.div>
         ))}
         {loading && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 text-sm bg-slate-800 border border-slate-700 text-slate-200 flex items-center">
-              <Loader2 className="w-4 h-4 animate-spin text-slate-400 mr-2" />
+          <div className="flex justify-start slide-up">
+            <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 text-sm bg-[var(--hover-bg)] border border-[var(--border)] text-[var(--text-primary)] flex items-center shadow-md">
+              <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)] mr-2" />
               Thinking...
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 bg-slate-900 border-t border-slate-800 shrink-0">
-        <form onSubmit={handleSend} className="relative flex items-end gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-            placeholder="Type your message..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pr-12 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm disabled:opacity-50"
-          />
-          <button
+      <div className="p-4 bg-white border-t border-[var(--border)] shrink-0">
+        <motion.form
+          onSubmit={handleSend}
+          className="relative flex items-end gap-2 interactive"
+          initial={false}
+          animate={{}}
+        >
+          <motion.div
+            className="w-full"
+            animate={inputFocused ? { y: -2, boxShadow: '0 8px 24px rgba(255,107,154,0.10)' } : { y: 0, boxShadow: 'none' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          >
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={loading}
+              placeholder="Ask me anything..."
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              className="input-field w-full pr-12 disabled:opacity-50"
+            />
+          </motion.div>
+
+          <motion.button
             type="submit"
             disabled={!input.trim() || loading}
-            className="absolute right-2 bottom-2 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 transition-colors"
+            className="absolute right-2 bottom-2 p-2 bg-[var(--accent)] hover:bg-[var(--accent-600)] text-white rounded-lg disabled:opacity-50 disabled:bg-[var(--text-muted)] disabled:text-[var(--text-muted)] transition-all"
+            whileHover={(!loading && input.trim()) ? { scale: 1.06, y: -2, boxShadow: '0 10px 30px rgba(255,107,154,0.18)' } : {}}
+            whileTap={(!loading && input.trim()) ? { scale: 0.96 } : {}}
+            aria-label="Send message"
           >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          </motion.button>
+        </motion.form>
       </div>
     </div>
   );

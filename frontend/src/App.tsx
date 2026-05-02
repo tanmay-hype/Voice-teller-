@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Login from './pages/Login';
@@ -11,59 +10,46 @@ import Chat from './pages/Chat';
 import Layout from './components/Layout';
 import { useAuthStore } from './store/authStore';
 
-/* =========================
-   Protected Route Wrapper
-========================= */
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+/* Pure route guards that receive auth from App (avoid store reads inside guards) */
+const ProtectedRoute = ({ children, isAuthenticated, token }: { children: React.ReactNode; isAuthenticated: boolean; token: string | null }) => {
+  if (!isAuthenticated || !token) return <Navigate to="/login" replace />;
   return <Layout>{children}</Layout>;
 };
 
-/* =========================
-   Public Route Guard (NEW)
-   Prevent logged-in users from going back to login/register
-========================= */
-
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
+const PublicRoute = ({ children, isAuthenticated, token }: { children: React.ReactNode; isAuthenticated: boolean; token: string | null }) => {
+  if (isAuthenticated && token) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 };
 
-/* =========================
-   APP ROUTES
-========================= */
-
 function App() {
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const token = useAuthStore((s) => s.token);
+
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center">
+        <div className="animated-gradient" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-white/70 border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <Router>
-      <div className="min-h-screen bg-slate-950 text-white">
+      <div className="min-h-screen relative text-[var(--text-primary)]">
+        <div className="animated-gradient" />
         <Routes>
-          
-          {/* Public Routes */}
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute isAuthenticated={isAuthenticated} token={token}><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute isAuthenticated={isAuthenticated} token={token}><Register /></PublicRoute>} />
 
-          {/* Protected Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/voices" element={<ProtectedRoute><Voices /></ProtectedRoute>} />
-          <Route path="/dashboard/stories" element={<ProtectedRoute><Stories /></ProtectedRoute>} />
-          <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/voices" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Voices /></ProtectedRoute>} />
+          <Route path="/dashboard/stories" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Stories /></ProtectedRoute>} />
+          <Route path="/dashboard/chat" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Chat /></ProtectedRoute>} />
 
-          {/* Redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>

@@ -9,7 +9,7 @@ from models.story import Story
 from models.voice import Voice
 from schemas.story import Story as StorySchema, StoryCreate
 from api.deps import get_current_active_user
-from services.openai_svc import openai_svc
+from services.gemini_svc import gemini_svc
 from services.elevenlabs_svc import elevenlabs_svc
 
 router = APIRouter(prefix="/stories", tags=["stories"])
@@ -31,7 +31,7 @@ async def create_story(
 
     # Generate story using OpenAI
     try:
-        generated_content = await openai_svc.generate_story(story_in.content)
+        generated_content = await gemini_svc.generate_story(story_in.content)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
