@@ -17,6 +17,7 @@ const Stories: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [voiceId, setVoiceId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<any>(null);
 
   const reduce = useReducedMotion();
 
@@ -67,6 +68,10 @@ const Stories: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: reduce ? 0 : i * 0.06, duration: 0.45 }}
             whileHover={{ scale: 1.02 }}
+            onClick={() => setSelectedStory(story)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter') setSelectedStory(story); }}
             className="relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-slate-700 transition cursor-pointer">
 
             {/* 🔥 BACKGROUND ICON */}
@@ -130,6 +135,37 @@ const Stories: React.FC = () => {
                 {loading ? "Generating..." : "Generate"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW STORY MODAL */}
+      {selectedStory && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur z-50">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-3xl max-h-[80vh] overflow-y-auto border border-slate-800">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{selectedStory.title}</h2>
+                <p className="text-sm text-slate-400 mt-1">{selectedStory.created_at ? new Date(selectedStory.created_at).toLocaleString() : ''}</p>
+              </div>
+              <button onClick={() => setSelectedStory(null)} className="text-slate-300 hover:text-white">Close</button>
+            </div>
+
+            <div className="mt-4 text-slate-200 whitespace-pre-wrap">
+              {selectedStory.content}
+            </div>
+
+            {selectedStory.audio_url && (
+              <div className="mt-4">
+                <audio controls className="w-full">
+                  <source src={`http://localhost:8000${selectedStory.audio_url}`} />
+                </audio>
+              </div>
+            )}
+
+            <div className="mt-4 text-right">
+              <button onClick={() => setSelectedStory(null)} className="px-4 py-2 bg-emerald-600 rounded">Close</button>
+            </div>
           </div>
         </div>
       )}
