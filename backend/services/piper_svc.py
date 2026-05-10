@@ -2,6 +2,7 @@
 Piper TTS Service - Free, open-source text-to-speech for default voice
 """
 import importlib.util
+import ntpath
 import subprocess
 import os
 import shutil
@@ -26,7 +27,11 @@ class PiperService:
         """Find a runnable Piper command on the local machine."""
         env_command = os.environ.get("PIPER_COMMAND")
         if env_command:
-            return env_command.split()
+            env_parts = env_command.split()
+            env_exe = env_parts[0]
+            if os.path.exists(env_exe) or shutil.which(env_exe):
+                return env_parts
+            print(f"   ⚠️  Ignoring PIPER_COMMAND because it does not exist in this runtime: {env_exe}")
 
         # Try common installation paths first.
         common_paths = [
@@ -41,15 +46,15 @@ class PiperService:
             if os.path.exists(path):
                 return [path]
         
-        # Try finding in PATH.
+        # Prefer the Python module entry point when available (more reliable)
+        if importlib.util.find_spec("piper") is not None:
+            return [sys.executable, "-m", "piper"]
+
+        # Try finding a system binary in PATH.
         for candidate in ("piper", "piper.exe"):
             found = shutil.which(candidate)
             if found:
                 return [found]
-
-        # If the Python package is installed, use the module entry point.
-        if importlib.util.find_spec("piper") is not None:
-            return [sys.executable, "-m", "piper"]
         
         # Default path - will fail with clear message if not found
         return ["piper"]
@@ -59,6 +64,10 @@ class PiperService:
         # Allow overriding via environment variable (useful for Docker)
         env_model = os.environ.get("PIPER_MODEL_PATH")
         if env_model:
+            # If running inside Docker with a Windows path, translate to container mount
+            if self._is_linux_piper() and ('\\' in env_model or env_model.startswith('C:')):
+                basename = ntpath.basename(env_model)
+                return f"/models/{basename}"
             return env_model
 
         # Common model locations
@@ -66,6 +75,7 @@ class PiperService:
             os.path.expanduser("~/.local/share/piper/models/en_US-amy-medium.onnx"),
             os.path.expanduser("~/.local/share/piper/models/en_US-libritts-high.onnx"),
             os.path.join(os.getcwd(), "models", "en_US-amy-medium.onnx"),
+            "/models/en_US-amy-medium.onnx",
             "/usr/share/piper/models/en_US-amy-medium.onnx",
         ]
 
@@ -79,8 +89,13 @@ class PiperService:
     def _get_config_path(self) -> str | None:
         """Find a matching Piper config JSON if one is available."""
         env_config = os.environ.get("PIPER_CONFIG_PATH")
-        if env_config and os.path.exists(env_config):
-            return env_config
+        if env_config:
+            # If running inside Docker with a Windows path, translate to container mount
+            if self._is_linux_piper() and ('\\' in env_config or env_config.startswith('C:')):
+                basename = ntpath.basename(env_config)
+                return f"/models/{basename}"
+            if os.path.exists(env_config):
+                return env_config
 
         model_dir = os.path.dirname(self.model_path)
         base_name = os.path.basename(self.model_path)
@@ -98,7 +113,28 @@ class PiperService:
 
     def _to_container_path(self, host_path: str) -> str:
         """Translate a host model path into the mounted container path."""
+        if '\\' in host_path or host_path.startswith('C:'):
+            return f"/models/{ntpath.basename(host_path)}"
         return f"/models/{os.path.basename(host_path)}"
+
+    def _is_linux_piper(self) -> bool:
+        """Check if the detected Piper runner is a Linux binary."""
+        if not self.piper_runner:
+            return False
+        piper_exe = self.piper_runner[0]
+        # Check if it's a Unix-style path (not C:\ or C:/)
+        return '/' in piper_exe and not piper_exe.startswith('C:')
+
+    def _validate_local_paths(self) -> None:
+        """Validate model/config paths before running a local Piper command."""
+        if not os.path.exists(self.model_path):
+            raise Exception(
+                "Piper model file not found at "
+                f"{self.model_path}. If API runs in Docker, mount ./models to /models "
+                "or set PIPER_USE_DOCKER=1 with a reachable Docker CLI."
+            )
+        if self.config_path and not os.path.exists(self.config_path):
+            raise Exception(f"Piper config file not found at {self.config_path}")
 
     async def text_to_speech(self, text: str) -> bytes:
         """
@@ -127,18 +163,21 @@ class PiperService:
             use_docker = False
             docker_container = os.environ.get("PIPER_DOCKER_CONTAINER", "piper")
             if os.environ.get("PIPER_USE_DOCKER", "0") == "1":
+                if not shutil.which("docker"):
+                    raise Exception("PIPER_USE_DOCKER=1 but Docker CLI is not available in this runtime")
                 # Try to detect if docker container exists
                 try:
-                    subprocess.run(["docker", "inspect", docker_container], capture_output=True, timeout=10)
-                    use_docker = True
+                    inspect = subprocess.run(["docker", "inspect", docker_container], capture_output=True, timeout=10)
+                    use_docker = inspect.returncode == 0
                 except Exception:
                     use_docker = False
 
             if use_docker:
                 container_model_path = self._to_container_path(self.model_path)
+                container_output_path = "/tmp/piper_out.wav"
                 docker_cmd = [
                     "docker", "exec", "-i", docker_container,
-                    "python", "-m", "piper", "--model", container_model_path, "--output-file", "/tmp/piper_out.wav"
+                    "python", "-m", "piper", "--model", container_model_path, "--output-file", container_output_path
                 ]
                 if self.config_path:
                     docker_cmd += ["--config", self._to_container_path(self.config_path)]
@@ -150,19 +189,23 @@ class PiperService:
                     timeout=120
                 )
                 # copy out the file from container to host output_path
-                try:
-                    subprocess.run(["docker", "cp", f"{docker_container}:/tmp/piper_out.wav", output_path], check=True, timeout=20)
-                except Exception:
-                    # if docker cp failed, proceed to check output inside container
-                    pass
+                cp_result = subprocess.run(
+                    ["docker", "cp", f"{docker_container}:{container_output_path}", output_path],
+                    capture_output=True,
+                    timeout=20,
+                )
+                if cp_result.returncode != 0:
+                    cp_err = cp_result.stderr.decode("utf-8", errors="ignore") if cp_result.stderr else ""
+                    raise Exception(f"Failed to copy Piper output from container: {cp_err}")
             else:
+                self._validate_local_paths()
                 print(f"   ➡️  Running Piper: {' '.join(cmd)}")
                 # Use stdin to send text (avoid command line length issues)
                 result = subprocess.run(
                     cmd,
                     input=text.encode("utf-8"),
                     capture_output=True,
-                    timeout=60
+                    timeout=120
                 )
             
             if result.returncode != 0:

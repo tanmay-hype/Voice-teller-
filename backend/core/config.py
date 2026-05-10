@@ -6,6 +6,7 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AI Voice Storytelling"
+    APP_VERSION: str = "dev"
     
     # Database
     POSTGRES_USER: str = "postgres"

@@ -49,6 +49,11 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
       - SECRET_KEY=${SECRET_KEY:-supersecretkey_change_in_production}
+      - PIPER_USE_DOCKER=${PIPER_USE_DOCKER:-0}
+      - PIPER_DOCKER_CONTAINER=${PIPER_DOCKER_CONTAINER:-piper}
+    volumes:
+      - ./models:/models
+      - ./media:/app/media
 
   worker:
     build:
