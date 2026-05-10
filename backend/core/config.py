@@ -1,4 +1,7 @@
 from pydantic_settings import BaseSettings
+import os
+import subprocess
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -32,3 +35,41 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+
+# Resolve application version: priority -> APP_VERSION env var -> VERSION file -> git commit -> 'dev'
+try:
+    repo_root = Path(__file__).resolve().parents[2]
+except Exception:
+    repo_root = Path(os.getcwd())
+
+def _detect_version():
+    # 1) Env override
+    env_ver = os.environ.get("APP_VERSION")
+    if env_ver:
+        return env_ver
+
+    # 2) VERSION file at repo root
+    ver_file = repo_root / "VERSION"
+    if ver_file.exists():
+        try:
+            return ver_file.read_text().strip()
+        except Exception:
+            pass
+
+    # 3) Git short commit
+    try:
+        res = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(repo_root), capture_output=True, text=True, timeout=2)
+        if res.returncode == 0:
+            return res.stdout.strip()
+    except Exception:
+        pass
+
+    return "dev"
+
+# Populate APP_VERSION on settings if not provided by environment
+detected = _detect_version()
+if not getattr(settings, "APP_VERSION", None):
+    try:
+        settings.APP_VERSION = detected
+    except Exception:
+        pass

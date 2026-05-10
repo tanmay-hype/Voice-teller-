@@ -1,10 +1,9 @@
 // src/pages/Voices.tsx
 
 import React, { useState, useEffect } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 import { useStoryStore } from '../store/storyStore';
 import apiClient from '../services/apiClient';
-import { Mic2, Plus } from 'lucide-react';
+import { Mic2, Plus, Trash2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const Voices: React.FC = () => {
@@ -18,8 +17,6 @@ const Voices: React.FC = () => {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     apiClient.get('/voices/')
@@ -59,6 +56,16 @@ const Voices: React.FC = () => {
       setLoading(false);
     }
   };
+  const handleDeleteVoice = async (voiceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this voice?')) return;
+    
+    try {
+      await apiClient.delete(`/voices/${voiceId}`);
+      setVoices(voices.filter((v: any) => v.id !== voiceId));
+    } catch (err) {
+      alert('Failed to delete voice');
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -80,14 +87,9 @@ const Voices: React.FC = () => {
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {voices.map((voice, i) => (
-          <motion.div key={voice.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: reduce ? 0 : i * 0.05, duration: 0.45 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.995 }}
-            className= "glass rounded-2xl p-5 relative overflow-hidden group cursor-pointer">
+        {voices.map((voice) => (
+          <div key={voice.id}
+            className="glass rounded-2xl p-5 relative overflow-hidden group cursor-pointer">
             
             {/* 🔥 BACKGROUND ICON */}
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
@@ -107,7 +109,7 @@ const Voices: React.FC = () => {
                 {voice.description || 'No description'}
               </p>
             </div>
-          </motion.div>
+          </div>
         ))}
 
         {voices.length === 0 && (
@@ -127,21 +129,21 @@ const Voices: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder="Voice name"
                 className="w-full bg-slate-800 text-white p-2 rounded"
               />
 
               <textarea
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
                 placeholder="Description"
                 className="w-full bg-slate-800 text-white p-2 rounded"
               />
 
               <input
                 type="file"
-                onChange={e => setFile(e.target.files?.[0] || null)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] || null)}
               />
 
               <button className="w-full bg-blue-600 py-2 rounded">

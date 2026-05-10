@@ -31,40 +31,42 @@ services:
       dockerfile: Dockerfile
     container_name: story_api
     restart: always
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./backend:/app
+    # Removed --reload to avoid filesystem scanning of mounted venv (memory error).
+    # Use --reload only for local dev outside of the container.
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     depends_on:
       - db
       - redis
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:tanmay15@db:5432/aivoice
-      - REDIS_URL=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/aivoice}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
-      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey_change_in_production}
 
-#  worker:
-#    build:
-#      context: ./backend
-#      dockerfile: Dockerfile
-#    container_name: story_worker
-#    command: celery -A worker.celery_app worker --loglevel=info
-#    volumes:
-#      - ./backend:/app
-#    depends_on:
-#      - db
-#      - redis
-#    environment:
-#      - DATABASE_URL=postgresql+asyncpg://postgres:tanmay15@db:5432/aivoice
-#      - CELERY_BROKER_URL=redis://redis:6379/0
-#      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-#      - OPENAI_API_KEY=${OPENAI_API_KEY}
- #     - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}  
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: story_worker
+    command: celery -A worker.celery_app worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/aivoice}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
 
   web:
     build:
@@ -80,6 +82,23 @@ services:
       - VITE_API_URL=http://localhost:8000/api
     depends_on:
       - api
+
+  piper:
+    build:
+      context: .
+      dockerfile: docker/piper/Dockerfile
+    image: ai-voice-storytelling-piper:latest
+    container_name: piper
+    restart: unless-stopped
+    volumes:
+      - ./models:/models
+      - ./media:/media
+    command: tail -f /dev/null
+    healthcheck:
+      test: ["CMD", "python", "-m", "piper", "-h"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

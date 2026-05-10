@@ -5,6 +5,7 @@ from api.router import api_router
 from core.database import Base
 from core.database import engine
 import models
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(
@@ -23,9 +24,19 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api")
 
+# Serve media files
+import os
+os.makedirs("media", exist_ok=True)
+app.mount("/media", StaticFiles(directory="media"), name="media")
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/version")
+def version_info():
+    return {"project": settings.PROJECT_NAME, "version": settings.APP_VERSION}
 
 @app.on_event("startup")
 async def startup_event():
@@ -36,5 +47,6 @@ async def startup_event():
         print("db connected")
         await conn.run_sync(Base.metadata.create_all)
         print("tables created")
+    print(f"App version: {settings.APP_VERSION}")
  except Exception as e:
     print("Error during database setup:", e)

@@ -1,0 +1,15 @@
+# Ignore local virtual environments and caches
+venv/
+.venv/
+env/
+testenv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+.env

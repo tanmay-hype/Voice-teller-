@@ -96,3 +96,13 @@ async def list_voices(
     )
     voices = result.scalars().all()
     return voices
+
+
+@router.get("/count")
+async def voices_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    result = await db.execute(select(Voice).where(Voice.user_id == current_user.id))
+    count = len(result.scalars().all())
+    return {"count": count}

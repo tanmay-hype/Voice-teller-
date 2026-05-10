@@ -16,12 +16,13 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [storiesRes, voicesRes] = await Promise.all([
-          apiClient.get('/stories/'),
-          apiClient.get('/voices/'),
+        // fetch only counts for dashboard to avoid loading full payloads
+        const [storiesCountRes, voicesCountRes] = await Promise.all([
+          apiClient.get('/stories/count'),
+          apiClient.get('/voices/count'),
         ]);
-        setStories(storiesRes.data);
-        setVoices(voicesRes.data);
+        setStories(new Array(storiesCountRes.data.count));
+        setVoices(new Array(voicesCountRes.data.count));
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
