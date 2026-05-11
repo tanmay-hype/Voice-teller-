@@ -22,7 +22,7 @@ app = FastAPI(
 cors_origins = [origin.strip() for origin in getattr(settings, "CORS_ORIGINS", "").split(",") if origin.strip()]
 
 if not cors_origins:
-    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_origins = [ "https://6a01caec605bd4000967af60--ai-voice-teller.netlify.app" ]
 
 # Set all CORS enabled origins
 app.add_middleware(
