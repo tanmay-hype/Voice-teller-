@@ -1,13 +1,15 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { Mic2, BookOpen, MessageSquare, LogOut, LayoutDashboard } from 'lucide-react';
+import { Mic2, BookOpen, MessageSquare, LogOut, LayoutDashboard, ChevronDown, UserCircle2, CircleDollarSign } from 'lucide-react';
 import clsx from 'clsx';
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -15,6 +17,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Stories', href: '/dashboard/stories', icon: BookOpen },
     { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   ];
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }} className="flex h-screen bg-[var(--bg-primary)] font-sans text-[var(--text-primary)] transition-colors relative overflow-hidden">
@@ -77,6 +83,53 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div aria-hidden className="blob blob--lav" />
         <div aria-hidden className="blob blob--mint" />
         <main className="flex-1 overflow-y-auto p-8 relative z-10">
+          <div className="flex justify-end mb-6">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAccountMenuOpen((open) => !open)}
+                className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur px-4 py-2.5 shadow-sm hover:shadow-md transition"
+              >
+                <div className="w-10 h-10 rounded-full bg-[var(--accent-bg)] text-[var(--accent)] flex items-center justify-center font-semibold overflow-hidden">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">My Account</p>
+                  <p className="text-xs text-[var(--text-muted)] truncate max-w-36">{user?.email}</p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
+              </button>
+
+              {accountMenuOpen && (
+                <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-[var(--border)] bg-white shadow-2xl overflow-hidden z-50">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/account')}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-strong)] hover:bg-[var(--hover-bg)] transition text-left"
+                  >
+                    <UserCircle2 className="w-4 h-4 text-[var(--accent)]" />
+                    Update Profile
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-muted)] cursor-not-allowed bg-slate-50 text-left"
+                  >
+                    <CircleDollarSign className="w-4 h-4" />
+                    Subscriptions <span className="ml-auto text-[10px] uppercase tracking-wider">Soon</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
           <motion.div initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.45 }} className="max-w-full">
             {children}
           </motion.div>

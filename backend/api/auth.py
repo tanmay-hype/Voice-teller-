@@ -29,12 +29,15 @@ async def register_request_otp(user_in: UserCreate, db: AsyncSession = Depends(g
         result = await db.execute(select(User).where(User.email == user_in.email))
         existing_user = result.scalars().first()
 
-        if existing_user:
-            print("❌ User already exists")
+        if existing_user and getattr(existing_user, "status", "active") != "deleted":
+            print("❌ User already exists and is active")
             raise HTTPException(
                 status_code=400,
                 detail="Email already registered. Please login or use a different email.",
             )
+        elif existing_user and getattr(existing_user, "status", "active") == "deleted":
+            # Allow OTP to be requested for a previously deleted account to enable reactivation
+            print("ℹ️ Found previously deleted account — proceeding with OTP to allow reactivation")
 
         print("➡️ Generating OTP...")
         otp = generate_otp()
@@ -93,7 +96,7 @@ async def register_verify_otp(verify_data: UserVerifyOTPRequest, db: AsyncSessio
         result = await db.execute(select(User).where(User.email == verify_data.email))
         existing_user = result.scalars().first()
         
-        if existing_user:
+        if existing_user and getattr(existing_user, "status", "active") != "deleted":
             raise HTTPException(
                 status_code=400,
                 detail="User already exists. Please login.",
@@ -102,23 +105,34 @@ async def register_verify_otp(verify_data: UserVerifyOTPRequest, db: AsyncSessio
         print("➡️ Hashing password...")
         hashed_password = get_password_hash(verify_data.password)
 
-        print("➡️ Creating user object...")
-        user = User(
-            email=verify_data.email,
-            hashed_password=hashed_password,
-            is_verified=True,
-            latitude=verify_data.latitude,
-            longitude=verify_data.longitude,
-        )
-
-        print("➡️ Adding user to DB session...")
-        db.add(user)
-
-        print("➡️ Committing to database...")
-        await db.commit()
-
-        print("➡️ Refreshing user...")
-        await db.refresh(user)
+        print("➡️ Creating or reactivating user account...")
+        if existing_user and getattr(existing_user, "status", "active") == "deleted":
+            # Reactivate the soft-deleted user
+            existing_user.hashed_password = hashed_password
+            existing_user.is_verified = True
+            existing_user.is_active = True
+            existing_user.status = "active"
+            existing_user.latitude = verify_data.latitude
+            existing_user.longitude = verify_data.longitude
+            db.add(existing_user)
+            await db.commit()
+            await db.refresh(existing_user)
+            user = existing_user
+            print("✅ Reactivated existing user:", user.id)
+        else:
+            user = User(
+                email=verify_data.email,
+                hashed_password=hashed_password,
+                is_verified=True,
+                latitude=verify_data.latitude,
+                longitude=verify_data.longitude,
+            )
+            print("➡️ Adding user to DB session...")
+            db.add(user)
+            print("➡️ Committing to database...")
+            await db.commit()
+            print("➡️ Refreshing user...")
+            await db.refresh(user)
 
         print("✅ USER CREATED SUCCESSFULLY:", user.id)
         print("=====================================\n")
@@ -147,7 +161,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         existing_user = result.scalars().first()
         print("➡️ Existing user:", existing_user)
 
-        if existing_user:
+        if existing_user and getattr(existing_user, "status", "active") != "deleted":
             print("❌ User already exists")
             raise HTTPException(
                 status_code=400,
@@ -158,22 +172,37 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         hashed_password = get_password_hash(user_in.password)
         print("➡️ Password hashed successfully")
 
-        print("➡️ Creating user object...")
-        user = User(
-            email=user_in.email,
-            hashed_password=hashed_password,
-            latitude=user_in.latitude,
-            longitude=user_in.longitude,
-        )
+        if existing_user and getattr(existing_user, "status", "active") == "deleted":
+            # Reactivate soft-deleted account
+            print("➡️ Reactivating previously deleted account...")
+            existing_user.hashed_password = hashed_password
+            existing_user.is_active = True
+            existing_user.is_verified = False
+            existing_user.status = "active"
+            existing_user.latitude = user_in.latitude
+            existing_user.longitude = user_in.longitude
+            db.add(existing_user)
+            await db.commit()
+            await db.refresh(existing_user)
+            user = existing_user
+            print("✅ REACTIVATED USER:", user.id)
+        else:
+            print("➡️ Creating user object...")
+            user = User(
+                email=user_in.email,
+                hashed_password=hashed_password,
+                latitude=user_in.latitude,
+                longitude=user_in.longitude,
+            )
 
-        print("➡️ Adding user to DB session...")
-        db.add(user)
+            print("➡️ Adding user to DB session...")
+            db.add(user)
 
-        print("➡️ Committing to database...")
-        await db.commit()
+            print("➡️ Committing to database...")
+            await db.commit()
 
-        print("➡️ Refreshing user...")
-        await db.refresh(user)
+            print("➡️ Refreshing user...")
+            await db.refresh(user)
 
         print("✅ USER CREATED SUCCESSFULLY:", user.id)
         print("=====================================\n")
@@ -207,7 +236,7 @@ async def login(
         
         if not user or not verify_password(password, user.hashed_password):
             raise HTTPException(status_code=400, detail="Incorrect email or password")
-        elif not user.is_active:
+        elif not user.is_active or getattr(user, "status", "active") == "deleted":
             raise HTTPException(status_code=400, detail="Inactive user")
         
         # Update user location if provided

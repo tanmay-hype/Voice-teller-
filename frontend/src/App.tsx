@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Voices from './pages/Voices';
 import Stories from './pages/Stories';
 import Chat from './pages/Chat';
+import Account from './pages/Account';
+import DeleteAccount from './pages/DeleteAccount';
 
 import Layout from './components/Layout';
 import { useAuthStore } from './store/authStore';
@@ -47,6 +49,8 @@ function App() {
           <Route path="/dashboard/voices" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Voices /></ProtectedRoute>} />
           <Route path="/dashboard/stories" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Stories /></ProtectedRoute>} />
           <Route path="/dashboard/chat" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Chat /></ProtectedRoute>} />
+          <Route path="/dashboard/account" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><Account /></ProtectedRoute>} />
+          <Route path="/dashboard/account/delete" element={<ProtectedRoute isAuthenticated={isAuthenticated} token={token}><DeleteAccount /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
