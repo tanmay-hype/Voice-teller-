@@ -32,6 +32,11 @@ const Register: React.FC = () => {
           console.warn('Geolocation error:', error);
           setLocationError('Location permission denied. You can continue without it.');
           setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {

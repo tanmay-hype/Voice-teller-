@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -187,19 +187,49 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login")
 async def login(
     db: Annotated[AsyncSession, Depends(get_db)],
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    request: Request
 ):
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalars().first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return {
-        "access_token": create_access_token(
-            user.id, expires_delta=access_token_expires
-        ),
-        "token_type": "bearer",
-    }
+    """
+    Login endpoint that accepts username, password, and optional location (latitude/longitude)
+    """
+    try:
+        form_data = await request.form()
+        email = form_data.get('username')
+        password = form_data.get('password')
+        latitude = form_data.get('latitude')
+        longitude = form_data.get('longitude')
+
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="Email and password are required")
+
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalars().first()
+        
+        if not user or not verify_password(password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Incorrect email or password")
+        elif not user.is_active:
+            raise HTTPException(status_code=400, detail="Inactive user")
+        
+        # Update user location if provided
+        if latitude and longitude:
+            try:
+                user.latitude = float(latitude)
+                user.longitude = float(longitude)
+                db.add(user)
+                await db.commit()
+                print(f"✅ Location updated for user {user.email}: ({user.latitude}, {user.longitude})")
+            except (ValueError, TypeError) as e:
+                print(f"⚠️ Invalid latitude/longitude values: {latitude}, {longitude} - {str(e)}")
+        
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        return {
+            "access_token": create_access_token(
+                user.id, expires_delta=access_token_expires
+            ),
+            "token_type": "bearer",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"🔥 Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred during login")
