@@ -81,7 +81,7 @@ const Stories: React.FC = () => {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter') setSelectedStory(story); }}
-            className="relative bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-slate-700 transition cursor-pointer">
+            className="relative bg-purple-100/50 backdrop-blur-md border border-purple-200 rounded-2xl p-6 shadow-xl overflow-hidden group hover:border-purple-300 transition cursor-pointer">
 
             {/* 🔥 BACKGROUND ICON */}
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
@@ -93,7 +93,7 @@ const Stories: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-emerald-400" />
               </div>
 
-              <h3 className="mt-4 text-white font-semibold">
+              <h3 className="mt-4 text-black font-bold capitalize">
                 {story.title}
               </h3>
 
