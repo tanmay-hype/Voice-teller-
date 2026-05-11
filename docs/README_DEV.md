@@ -24,6 +24,13 @@ Notes & rationale
 Production / Hosting (Render, Netlify)
 - For Render / production, build images without dev mounts and run the API with a production server (gunicorn + uvicorn workers) or plain `uvicorn` without `--reload`.
 - Netlify is for frontend hosting; deploy the frontend build there and point `VITE_API_URL` to your deployed API.
+- If Render idles your backend, use a Cron Job to hit `/health` every 5 minutes. Example command:
+
+```bash
+curl -fsS https://your-app.onrender.com/health >/dev/null
+```
+
+- The in-process keep-alive is optional and controlled by `KEEPALIVE_ENABLE`, `KEEPALIVE_INTERVAL_SECONDS`, and `KEEPALIVE_URL` in `backend/core/config.py`.
 
 If you want, I can:
 - add a `Makefile` with common commands, or

@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     
     # OTP Settings
     OTP_EXPIRY_MINUTES: int = 15
+    # Keep-alive (self-ping) settings to prevent platform idling
+    KEEPALIVE_ENABLE: bool = False
+    KEEPALIVE_INTERVAL_SECONDS: int = 300
+    # Default points to local process; override with public URL if needed
+    KEEPALIVE_URL: str = "http://127.0.0.1:8000/health"
 
     class Config:
         case_sensitive = True
