@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     # Default points to local process; override with public URL if needed
     KEEPALIVE_URL: str = "http://127.0.0.1:8000/health"
 
+    # CORS
+    # Comma-separated list of allowed frontend origins, e.g.
+    # http://localhost:5173,https://your-site.netlify.app
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+
     class Config:
         case_sensitive = True
         env_file = ".env"
