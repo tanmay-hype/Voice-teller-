@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import apiClient from '../services/apiClient';
-import { Mic2, Loader2, MapPin, CheckCircle } from 'lucide-react';
+import { Mic2, Loader2, } from 'lucide-react';
 
 const Register: React.FC = () => {
   const [step, setStep] = useState<'form' | 'otp'>('form');
@@ -15,7 +15,6 @@ const Register: React.FC = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
-  const [locationError, setLocationError] = useState('');
   const [otpExpiry, setOtpExpiry] = useState(15);
   const navigate = useNavigate();
 
@@ -30,7 +29,6 @@ const Register: React.FC = () => {
         },
         (error) => {
           console.warn('Geolocation error:', error);
-          setLocationError('Location permission denied. You can continue without it.');
           setLocationLoading(false);
         },
         {
@@ -40,7 +38,6 @@ const Register: React.FC = () => {
         }
       );
     } else {
-      setLocationError('Geolocation is not supported by your browser.');
       setLocationLoading(false);
     }
   }, []);

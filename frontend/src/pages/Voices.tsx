@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStoryStore } from '../store/storyStore';
 import apiClient from '../services/apiClient';
-import { Mic2, Plus, Trash2 } from 'lucide-react';
+import { Mic2, Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const Voices: React.FC = () => {
@@ -54,16 +54,6 @@ const Voices: React.FC = () => {
       alert("Failed to upload voice");
     } finally {
       setLoading(false);
-    }
-  };
-  const handleDeleteVoice = async (voiceId: string) => {
-    if (!window.confirm('Are you sure you want to delete this voice?')) return;
-    
-    try {
-      await apiClient.delete(`/voices/${voiceId}`);
-      setVoices(voices.filter((v: any) => v.id !== voiceId));
-    } catch (err) {
-      alert('Failed to delete voice');
     }
   };
 
