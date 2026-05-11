@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ELEVENLABS_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    
+    # Email Configuration
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    EMAIL_SENDER: str = "your-email@gmail.com"
+    EMAIL_PASSWORD: str = ""
+    
+    # OTP Settings
+    OTP_EXPIRY_MINUTES: int = 15
 
     class Config:
         case_sensitive = True

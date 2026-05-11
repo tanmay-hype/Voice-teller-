@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from core.config import settings
-from models.base import Base
+from core.database import Base
 from models.user import User
 
 # this is the Alembic Config object, which provides

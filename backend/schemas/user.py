@@ -8,6 +8,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class UserRegisterRequest(UserBase):
+    password: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class UserVerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    password: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class UserUpdate(BaseModel):
     password: Optional[str] = None
@@ -16,6 +30,9 @@ class UserUpdate(BaseModel):
 class UserInDBBase(UserBase):
     id: UUID
     is_active: bool
+    is_verified: bool
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
