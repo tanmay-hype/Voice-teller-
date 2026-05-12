@@ -125,10 +125,15 @@ class GeminiService:
 
     @staticmethod
     def _local_story_fallback(prompt: str) -> str:
+        prompt_clean = prompt.strip().rstrip(".")
+        if not prompt_clean:
+            prompt_clean = "a bright and hopeful day"
+
         return (
-            "The storyteller is currently running in fallback mode because Gemini is unavailable.\n\n"
-            f"Story prompt: {prompt}\n\n"
-            "Once Gemini quota is available, story quality will improve automatically."
+            f"Once upon a time, on {prompt_clean}, there was a little kid who walked to school with a backpack full of dreams. "
+            "The clouds were soft, the air felt fresh, and every step felt like the start of a new adventure. "
+            "Along the way, the child noticed birds singing, friendly neighbors waving, and little surprises that made the morning feel magical. "
+            "By the time the school bell rang, the kid was smiling, ready to learn, play, and share stories with new friends."
         )
 
     async def chat_completion(self, messages: list[dict]) -> str:

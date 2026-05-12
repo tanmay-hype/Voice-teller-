@@ -136,6 +136,33 @@ class PiperService:
         if self.config_path and not os.path.exists(self.config_path):
             raise Exception(f"Piper config file not found at {self.config_path}")
 
+    def _find_espeak_runner(self) -> list[str] | None:
+        """Find espeak-ng/espeak as a last-resort local TTS engine."""
+        for candidate in ("espeak-ng", "espeak"):
+            found = shutil.which(candidate)
+            if found:
+                return [found]
+        return None
+
+    def _generate_espeak_audio(self, text: str, output_path: str) -> bytes:
+        """Fallback TTS using espeak-ng when Piper is unavailable."""
+        runner = self._find_espeak_runner()
+        if not runner:
+            raise Exception("Neither Piper nor espeak-ng is available in this runtime")
+
+        cmd = runner + ["-w", output_path, text]
+        print(f"   ↪️  Running fallback TTS: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            stderr = result.stderr.decode("utf-8", errors="ignore") if result.stderr is not None else ""
+            raise Exception(f"espeak fallback failed: {stderr}")
+
+        if not os.path.exists(output_path):
+            raise Exception(f"espeak fallback did not create output file: {output_path}")
+
+        with open(output_path, "rb") as f:
+            return f.read()
+
     async def text_to_speech(self, text: str) -> bytes:
         """
         Convert text to speech using Piper
@@ -202,34 +229,40 @@ class PiperService:
                     cp_err = cp_result.stderr.decode("utf-8", errors="ignore") if cp_result.stderr else ""
                     raise Exception(f"Failed to copy Piper output from container: {cp_err}")
             else:
-                self._validate_local_paths()
-                print(f"   ➡️  Running Piper: {' '.join(cmd)}")
-                # Use stdin to send text (avoid command line length issues)
-                result = subprocess.run(
-                    cmd,
-                    input=text.encode("utf-8"),
-                    capture_output=True,
-                    timeout=120
-                )
-
-                # Some Piper builds use --output_file instead of --output-file.
-                stderr_text = result.stderr.decode("utf-8", errors="ignore") if result.stderr is not None else ""
-                if result.returncode != 0 and ("--output-file" in stderr_text or "unrecognized arguments" in stderr_text):
-                    cmd = _build_local_cmd("--output_file")
-                    print(f"   ↪️  Retrying Piper with alternate flag: {' '.join(cmd)}")
+                try:
+                    self._validate_local_paths()
+                    print(f"   ➡️  Running Piper: {' '.join(cmd)}")
+                    # Use stdin to send text (avoid command line length issues)
                     result = subprocess.run(
                         cmd,
                         input=text.encode("utf-8"),
                         capture_output=True,
                         timeout=120
                     )
+
+                    # Some Piper builds use --output_file instead of --output-file.
+                    stderr_text = result.stderr.decode("utf-8", errors="ignore") if result.stderr is not None else ""
+                    if result.returncode != 0 and ("--output-file" in stderr_text or "unrecognized arguments" in stderr_text):
+                        cmd = _build_local_cmd("--output_file")
+                        print(f"   ↪️  Retrying Piper with alternate flag: {' '.join(cmd)}")
+                        result = subprocess.run(
+                            cmd,
+                            input=text.encode("utf-8"),
+                            capture_output=True,
+                            timeout=120
+                        )
+                except Exception as piper_error:
+                    print(f"   ⚠️  Piper unavailable, using espeak fallback: {piper_error}")
+                    self._generate_espeak_audio(text, output_path)
+                    result = subprocess.CompletedProcess(cmd, 0, b"", b"")
             
             if result.returncode != 0:
                 print(f"   ❌ Piper failed!")
                 print(f"      Return code: {result.returncode}")
                 stderr = result.stderr.decode() if result.stderr is not None else ""
                 print(f"      Stderr: {stderr}")
-                raise Exception(f"Piper TTS failed: {stderr}")
+                print("   ⚠️  Falling back to espeak-ng")
+                self._generate_espeak_audio(text, output_path)
             
             # Read the output WAV file
             if not os.path.exists(output_path):
