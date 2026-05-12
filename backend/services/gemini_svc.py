@@ -6,9 +6,10 @@ from core.config import settings
 from services.openai_svc import openai_svc
 
 GEMINI_API_KEY = settings.GEMINI_API_KEY
-GEMINI_PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_CANDIDATE_MODELS = [
     GEMINI_PRIMARY_MODEL,
+    "gemini-2.5-flash"
     "gemini-2.5-flash-lite",
     "gemini-2.5-pro",
     "gemini-2.5-pro-latest",
