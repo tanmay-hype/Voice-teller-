@@ -9,26 +9,46 @@ GEMINI_API_KEY = settings.GEMINI_API_KEY
 GEMINI_PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_CANDIDATE_MODELS = [
     GEMINI_PRIMARY_MODEL,
-    "gemini-2.5-flash"
+    "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
     "gemini-2.5-pro",
     "gemini-2.5-pro-latest",
 ]
 
 try:
-    Client = importlib.import_module("google.genai").Client
+    NewClient = importlib.import_module("google.genai").Client
 except Exception:
-    Client = None
+    NewClient = None
+
+try:
+    LegacyGenAI = importlib.import_module("google.generativeai")
+except Exception:
+    LegacyGenAI = None
 
 
 class GeminiService:
     def __init__(self):
-        if GEMINI_API_KEY and Client:
-            self.client = Client(api_key=GEMINI_API_KEY)
+        self.client = None
+        self.client_kind = None
+
+        if not GEMINI_API_KEY:
+            print("⚠️ Gemini key missing")
+            return
+
+        if NewClient:
+            self.client = NewClient(api_key=GEMINI_API_KEY)
+            self.client_kind = "new"
             print("✅ Gemini NEW SDK connected")
-        else:
-            self.client = None
-            print("⚠️ Gemini key or SDK missing")
+            return
+
+        if LegacyGenAI:
+            LegacyGenAI.configure(api_key=GEMINI_API_KEY)
+            self.client = LegacyGenAI
+            self.client_kind = "legacy"
+            print("✅ Gemini LEGACY SDK connected")
+            return
+
+        print("⚠️ Gemini SDK missing (install google-genai or google-generativeai)")
 
     @staticmethod
     def _extract_retry_seconds(error_text: str) -> int:
@@ -47,11 +67,16 @@ class GeminiService:
 
         for model in GEMINI_CANDIDATE_MODELS:
             try:
-                response = self.client.models.generate_content(
-                    model=model,
-                    contents=contents,
-                )
-                text = (response.text or "").strip()
+                if self.client_kind == "new":
+                    response = self.client.models.generate_content(
+                        model=model,
+                        contents=contents,
+                    )
+                    text = (response.text or "").strip()
+                else:
+                    response = self.client.GenerativeModel(model).generate_content(contents)
+                    text = (getattr(response, "text", "") or "").strip()
+
                 if text:
                     return text
             except Exception as e:
@@ -65,11 +90,16 @@ class GeminiService:
                     if 0 < retry_seconds <= 8:
                         await asyncio.sleep(retry_seconds)
                         try:
-                            response = self.client.models.generate_content(
-                                model=model,
-                                contents=contents,
-                            )
-                            text = (response.text or "").strip()
+                            if self.client_kind == "new":
+                                response = self.client.models.generate_content(
+                                    model=model,
+                                    contents=contents,
+                                )
+                                text = (response.text or "").strip()
+                            else:
+                                response = self.client.GenerativeModel(model).generate_content(contents)
+                                text = (getattr(response, "text", "") or "").strip()
+
                             if text:
                                 return text
                         except Exception as retry_error:

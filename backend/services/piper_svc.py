@@ -152,13 +152,17 @@ class PiperService:
             output_path = tmp.name
 
         try:
+            def _build_local_cmd(output_flag: str) -> list[str]:
+                cmd_local = self.piper_runner + [
+                    "--model", self.model_path,
+                    output_flag, output_path,
+                ]
+                if self.config_path:
+                    cmd_local += ["--config", self.config_path]
+                return cmd_local
+
             # Run Piper command
-            cmd = self.piper_runner + [
-                "--model", self.model_path,
-                "--output-file", output_path,
-            ]
-            if self.config_path:
-                cmd += ["--config", self.config_path]
+            cmd = _build_local_cmd("--output-file")
             # If explicitly configured, use Docker container fallback.
             use_docker = False
             docker_container = os.environ.get("PIPER_DOCKER_CONTAINER", "piper")
@@ -207,6 +211,18 @@ class PiperService:
                     capture_output=True,
                     timeout=120
                 )
+
+                # Some Piper builds use --output_file instead of --output-file.
+                stderr_text = result.stderr.decode("utf-8", errors="ignore") if result.stderr is not None else ""
+                if result.returncode != 0 and ("--output-file" in stderr_text or "unrecognized arguments" in stderr_text):
+                    cmd = _build_local_cmd("--output_file")
+                    print(f"   ↪️  Retrying Piper with alternate flag: {' '.join(cmd)}")
+                    result = subprocess.run(
+                        cmd,
+                        input=text.encode("utf-8"),
+                        capture_output=True,
+                        timeout=120
+                    )
             
             if result.returncode != 0:
                 print(f"   ❌ Piper failed!")
