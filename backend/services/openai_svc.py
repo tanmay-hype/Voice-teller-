@@ -1,3 +1,6 @@
+import hashlib
+import random
+import re
 from openai import AsyncOpenAI
 from core.config import settings
 
@@ -9,16 +12,80 @@ client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 class OpenAIService:
 
     @staticmethod
-    def _local_story(prompt: str) -> str:
-        prompt_clean = prompt.strip().rstrip(".")
+    def _normalize_prompt(prompt: str) -> str:
+        prompt_clean = re.sub(r"\s+", " ", prompt.strip())
+        return prompt_clean.rstrip(".")
+
+    @staticmethod
+    def _theme_from_prompt(prompt: str) -> tuple[str, str, str]:
+        prompt_l = prompt.lower()
+
+        if any(word in prompt_l for word in ("school", "class", "teacher", "homework")):
+            return (
+                "school day",
+                "the school gate with a backpack full of questions",
+                "the classroom door where new lessons waited"
+            )
+        if any(word in prompt_l for word in ("car", "drive", "road", "vehicle", "truck", "bus")):
+            return (
+                "road trip",
+                "the road where the wheels hummed softly",
+                "a stop filled with surprises, signs, and bright colors"
+            )
+        if any(word in prompt_l for word in ("rabbit", "bunny", "animal", "cat", "dog", "bear", "lion", "bird")):
+            return (
+                "animal adventure",
+                "a grassy path with tiny footprints and careful steps",
+                "a safe little clearing where friendship could grow"
+            )
+        if any(word in prompt_l for word in ("weather", "rain", "sunny", "cloud", "storm", "wind", "pleasant")):
+            return (
+                "weather day",
+                "the morning sky and the changing air around the town",
+                "an afternoon that felt calm, bright, and full of possibility"
+            )
+        if any(word in prompt_l for word in ("sad", "lonely", "cry", "lost", "scared", "afraid")):
+            return (
+                "gentle feelings",
+                "a quiet corner where worries could be heard",
+                "a warm moment when hope began to return"
+            )
+
+        return (
+            "small adventure",
+            "a familiar place with one surprising detail",
+            "a moment that turned ordinary things into something magical"
+        )
+
+    @classmethod
+    def _local_story(cls, prompt: str) -> str:
+        prompt_clean = cls._normalize_prompt(prompt)
         if not prompt_clean:
             prompt_clean = "a bright and cheerful morning"
 
+        theme, opening_scene, closing_scene = cls._theme_from_prompt(prompt_clean)
+        seed = int(hashlib.sha256(prompt_clean.encode("utf-8")).hexdigest()[:8], 16)
+        rng = random.Random(seed)
+
+        names = ["Mia", "Noah", "Lina", "Ari", "Zoe", "Sam"]
+        friends = ["a kind neighbor", "a cheerful friend", "a curious classmate", "a gentle parent"]
+        actions = [
+            "noticed",
+            "learned",
+            "helped",
+            "laughed with",
+            "shared with",
+            "discovered",
+        ]
+        name = rng.choice(names)
+        friend = rng.choice(friends)
+        action = rng.choice(actions)
+
         return (
-            f"On {prompt_clean}, a little kid set out for school with a bright smile and a hopeful heart. "
-            "The path felt calm and welcoming, with gentle breezes, singing birds, and neighbors waving hello. "
-            "Every step turned into a tiny adventure, and by the time the child reached the classroom, the day already felt special. "
-            "Inside, new lessons, kind friends, and a world of discoveries waited to be explored."
+            f"{name} woke up ready for a {theme} on {prompt_clean}. "
+            f"The story began at {opening_scene}, and {name} {action} {friend} along the way. "
+            f"A small problem appeared, but {name} stayed brave, listened closely, and found a gentle solution. "
+            f"By the time {closing_scene} arrived, the day felt brighter, and {name} had one more reason to smile."
         )
 
     @staticmethod

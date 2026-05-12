@@ -144,13 +144,19 @@ class PiperService:
                 return [found]
         return None
 
+    @staticmethod
+    def _espeak_voice_args() -> list[str]:
+        """Prefer a clearer female English voice for the fallback engine."""
+        preferred_voice = os.environ.get("ESPEAK_VOICE", "en-us+f3")
+        return ["-v", preferred_voice]
+
     def _generate_espeak_audio(self, text: str, output_path: str) -> bytes:
         """Fallback TTS using espeak-ng when Piper is unavailable."""
         runner = self._find_espeak_runner()
         if not runner:
             raise Exception("Neither Piper nor espeak-ng is available in this runtime")
 
-        cmd = runner + ["-w", output_path, text]
+        cmd = runner + self._espeak_voice_args() + ["-w", output_path, text]
         print(f"   ↪️  Running fallback TTS: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, timeout=120)
         if result.returncode != 0:
@@ -179,6 +185,8 @@ class PiperService:
             output_path = tmp.name
 
         try:
+            engine_used = "piper"
+
             def _build_local_cmd(output_flag: str) -> list[str]:
                 cmd_local = self.piper_runner + [
                     "--model", self.model_path,
@@ -253,6 +261,7 @@ class PiperService:
                         )
                 except Exception as piper_error:
                     print(f"   ⚠️  Piper unavailable, using espeak fallback: {piper_error}")
+                    engine_used = "espeak-ng fallback"
                     self._generate_espeak_audio(text, output_path)
                     result = subprocess.CompletedProcess(cmd, 0, b"", b"")
             
@@ -262,6 +271,7 @@ class PiperService:
                 stderr = result.stderr.decode() if result.stderr is not None else ""
                 print(f"      Stderr: {stderr}")
                 print("   ⚠️  Falling back to espeak-ng")
+                engine_used = "espeak-ng fallback"
                 self._generate_espeak_audio(text, output_path)
             
             # Read the output WAV file
@@ -273,6 +283,7 @@ class PiperService:
             
             print(f"   ✅ Piper TTS completed!")
             print(f"      Audio size: {len(audio_bytes)} bytes")
+            print(f"      Engine: {engine_used}")
             print(f"{'='*50}\n")
             
             return audio_bytes
