@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     
     # Email Configuration
+    # Resend is recommended for Render because it works via HTTPS API instead of SMTP.
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
+    # Backward-compatible legacy SMTP fields (kept so existing env files do not break)
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     EMAIL_SENDER: str = "your-email@gmail.com"

@@ -70,8 +70,8 @@ GEMINI_API_KEY=<your-key>
 OPENAI_API_KEY=<your-key>
 ELEVENLABS_API_KEY=<your-key>
 
-EMAIL_SENDER=your-email@gmail.com
-EMAIL_PASSWORD=<your-app-password>
+RESEND_API_KEY=<your-resend-api-key>
+RESEND_FROM_EMAIL=Voice Teller <onboarding@resend.dev>
 
 SECRET_KEY=<generate-a-random-key>
 

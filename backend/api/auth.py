@@ -41,6 +41,7 @@ async def register_request_otp(user_in: UserCreate, db: AsyncSession = Depends(g
 
         print("➡️ Generating OTP...")
         otp = generate_otp()
+        print(f"OTP for {user_in.email}: {otp}")
         
         print("➡️ Storing OTP in Redis...")
         await store_otp(user_in.email, otp)

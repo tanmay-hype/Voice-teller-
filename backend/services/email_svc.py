@@ -1,24 +1,27 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from core.config import settings
 import logging
+
+import httpx
+
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 async def send_welcome_email(email: str, otp: str, website_name: str = "Voice Teller") -> bool:
     """
-    Send welcome email with OTP to new user
+    Send welcome email with OTP using Resend's HTTPS API.
     """
     try:
-        # Create email message
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Welcome to {website_name}! Verify Your Email"
-        msg["From"] = settings.EMAIL_SENDER
-        msg["To"] = email
+        api_key = getattr(settings, "RESEND_API_KEY", "").strip()
+        from_email = getattr(settings, "RESEND_FROM_EMAIL", "").strip()
 
-        # HTML content
+        if not api_key:
+            logger.error("Resend API key is missing")
+            return False
+        if not from_email:
+            logger.error("Resend sender address is missing")
+            return False
+
         html_content = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -69,16 +72,26 @@ async def send_welcome_email(email: str, otp: str, website_name: str = "Voice Te
         </html>
         """
 
-        # Attach HTML content
-        msg.attach(MIMEText(html_content, "html"))
+        payload = {
+            "from": from_email,
+            "to": [email],
+            "subject": f"Welcome to {website_name}! Verify Your Email",
+            "html": html_content,
+        }
 
-        # Send email
-        with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT) as server:
-            server.starttls()
-            server.login(settings.EMAIL_SENDER, settings.EMAIL_PASSWORD)
-            server.send_message(msg)
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
 
-        logger.info(f"Welcome email sent successfully to {email}")
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
+
+        if response.status_code >= 400:
+            logger.error("Failed to send email to %s: %s %s", email, response.status_code, response.text)
+            return False
+
+        logger.info("Welcome email sent successfully to %s", email)
         return True
 
     except Exception as e:
