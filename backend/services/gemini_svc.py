@@ -13,12 +13,7 @@ else:
     if _env_gemini_model:
         print(f"⚠️ Unsupported GEMINI_MODEL '{_env_gemini_model}', forcing gemini-1.5-flash")
     GEMINI_PRIMARY_MODEL = "gemini-1.5-flash"
-GEMINI_CANDIDATE_MODELS = [
-    GEMINI_PRIMARY_MODEL,
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro",
-    "gemini-1.5-pro-latest",
-]
+GEMINI_CANDIDATE_MODELS = [GEMINI_PRIMARY_MODEL]
 
 try:
     NewClient = importlib.import_module("google.genai").Client
@@ -44,6 +39,7 @@ class GeminiService:
             self.client = NewClient(api_key=GEMINI_API_KEY)
             self.client_kind = "new"
             print("✅ Gemini NEW SDK connected")
+            print(f"   Gemini model: {GEMINI_PRIMARY_MODEL}")
             return
 
         if LegacyGenAI:
@@ -51,6 +47,7 @@ class GeminiService:
             self.client = LegacyGenAI
             self.client_kind = "legacy"
             print("✅ Gemini LEGACY SDK connected")
+            print(f"   Gemini model: {GEMINI_PRIMARY_MODEL}")
             return
 
         print("⚠️ Gemini SDK missing (install google-genai or google-generativeai)")
@@ -79,6 +76,9 @@ class GeminiService:
                 "not found",
                 "404",
                 "invalid_argument",
+                "permission denied",
+                "unauthorized",
+                "forbidden",
             )
         )
 
@@ -91,6 +91,7 @@ class GeminiService:
 
         for model in GEMINI_CANDIDATE_MODELS:
             try:
+                print(f"➡️ Gemini request start [{model}]")
                 if self.client_kind == "new":
                     response = self.client.models.generate_content(
                         model=model,
@@ -104,13 +105,14 @@ class GeminiService:
                 if text:
                     print(f"✅ Gemini success [{model}]")
                     return text
+                print(f"⚠️ Gemini empty response [{model}]")
             except Exception as e:
                 last_error = e
                 error_text = str(e)
                 print(f"🔥 GEMINI ERROR [{model}]:", error_text)
 
                 if self._is_gemini_config_error(error_text):
-                    print(f"⚠️ Gemini config error [{model}] - falling back after logging")
+                    print(f"⚠️ Gemini config error [{model}] - using local prompt-aware fallback")
                     raise RuntimeError(error_text)
 
                 # Retry once if provider returns a short retry window.
@@ -171,6 +173,7 @@ class GeminiService:
             try:
                 return await openai_svc.chat_completion(messages)
             except Exception:
+                print("⚠️ Gemini unavailable; using local chat fallback")
                 return self._local_chat_fallback(messages)
 
         try:
@@ -183,10 +186,12 @@ class GeminiService:
         except Exception as e:
             print("🔥 GEMINI ERROR:", str(e))
             if self._is_gemini_config_error(str(e)):
+                print("⚠️ Gemini config error; returning local chat fallback")
                 return self._local_chat_fallback(messages)
             try:
                 return await openai_svc.chat_completion(messages)
             except Exception:
+                print("⚠️ Gemini and OpenAI unavailable; returning local chat fallback")
                 return self._local_chat_fallback(messages)
 
     async def generate_story(self, prompt: str) -> str:
@@ -194,6 +199,7 @@ class GeminiService:
             try:
                 return await openai_svc.generate_story(prompt)
             except Exception:
+                print("⚠️ Gemini unavailable; returning local story fallback")
                 return self._local_story_from_prompt(prompt)
 
         try:
@@ -208,10 +214,12 @@ class GeminiService:
         except Exception as e:
             print("🔥 GEMINI ERROR:", str(e))
             if self._is_gemini_config_error(str(e)):
+                print("⚠️ Gemini config error; returning local story fallback")
                 return self._local_story_from_prompt(prompt)
             try:
                 return await openai_svc.generate_story(prompt)
             except Exception:
+                print("⚠️ Gemini and OpenAI unavailable; returning local story fallback")
                 return self._local_story_from_prompt(prompt)
 
 
