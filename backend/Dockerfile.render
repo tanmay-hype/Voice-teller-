@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -29,8 +30,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Create log directory for supervisor
 RUN mkdir -p /var/log
 
-# Expose API port (Redis runs internally)
-EXPOSE 8000
+# Expose API port (Render will provide PORT dynamically)
+EXPOSE 10000
 
 # Start supervisord (which will manage all services)
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
