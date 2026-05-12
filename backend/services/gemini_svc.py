@@ -6,13 +6,18 @@ from core.config import settings
 from services.openai_svc import openai_svc
 
 GEMINI_API_KEY = settings.GEMINI_API_KEY
-GEMINI_PRIMARY_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+_env_gemini_model = os.getenv("GEMINI_MODEL", "").strip()
+if _env_gemini_model and _env_gemini_model.startswith("gemini-1.5"):
+    GEMINI_PRIMARY_MODEL = _env_gemini_model
+else:
+    if _env_gemini_model:
+        print(f"⚠️ Unsupported GEMINI_MODEL '{_env_gemini_model}', forcing gemini-1.5-flash")
+    GEMINI_PRIMARY_MODEL = "gemini-1.5-flash"
 GEMINI_CANDIDATE_MODELS = [
     GEMINI_PRIMARY_MODEL,
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-pro",
-    "gemini-2.5-pro-latest",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-latest",
 ]
 
 try:
@@ -97,6 +102,7 @@ class GeminiService:
                     text = (getattr(response, "text", "") or "").strip()
 
                 if text:
+                    print(f"✅ Gemini success [{model}]")
                     return text
             except Exception as e:
                 last_error = e
@@ -104,6 +110,7 @@ class GeminiService:
                 print(f"🔥 GEMINI ERROR [{model}]:", error_text)
 
                 if self._is_gemini_config_error(error_text):
+                    print(f"⚠️ Gemini config error [{model}] - falling back after logging")
                     raise RuntimeError(error_text)
 
                 # Retry once if provider returns a short retry window.
@@ -123,6 +130,7 @@ class GeminiService:
                                 text = (getattr(response, "text", "") or "").strip()
 
                             if text:
+                                print(f"✅ Gemini success [{model}] after retry")
                                 return text
                         except Exception as retry_error:
                             last_error = retry_error
