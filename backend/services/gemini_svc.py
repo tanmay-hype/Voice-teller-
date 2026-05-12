@@ -62,6 +62,25 @@ class GeminiService:
         except (TypeError, ValueError):
             return 0
 
+    @staticmethod
+    def _is_gemini_config_error(error_text: str) -> bool:
+        lowered = error_text.lower()
+        return any(
+            marker in lowered
+            for marker in (
+                "api key expired",
+                "api key invalid",
+                "invalid api key",
+                "not found",
+                "404",
+                "invalid_argument",
+            )
+        )
+
+    @classmethod
+    def _local_story_from_prompt(cls, prompt: str) -> str:
+        return openai_svc._local_story(prompt)
+
     async def _generate_with_gemini(self, contents: str) -> str:
         last_error = None
 
@@ -83,6 +102,9 @@ class GeminiService:
                 last_error = e
                 error_text = str(e)
                 print(f"🔥 GEMINI ERROR [{model}]:", error_text)
+
+                if self._is_gemini_config_error(error_text):
+                    raise RuntimeError(error_text)
 
                 # Retry once if provider returns a short retry window.
                 if "RESOURCE_EXHAUSTED" in error_text:
@@ -152,6 +174,8 @@ class GeminiService:
 
         except Exception as e:
             print("🔥 GEMINI ERROR:", str(e))
+            if self._is_gemini_config_error(str(e)):
+                return self._local_chat_fallback(messages)
             try:
                 return await openai_svc.chat_completion(messages)
             except Exception:
@@ -162,7 +186,7 @@ class GeminiService:
             try:
                 return await openai_svc.generate_story(prompt)
             except Exception:
-                return self._local_story_fallback(prompt)
+                return self._local_story_from_prompt(prompt)
 
         try:
             story_prompt = (
@@ -175,10 +199,12 @@ class GeminiService:
 
         except Exception as e:
             print("🔥 GEMINI ERROR:", str(e))
+            if self._is_gemini_config_error(str(e)):
+                return self._local_story_from_prompt(prompt)
             try:
                 return await openai_svc.generate_story(prompt)
             except Exception:
-                return self._local_story_fallback(prompt)
+                return self._local_story_from_prompt(prompt)
 
 
 gemini_svc = GeminiService()
