@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # CORS
     # Comma-separated list of allowed frontend origins, e.g.
     # http://localhost:5173,https://your-site.netlify.app
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "https://ai-voice-teller.netlify.app"
 
     class Config:
         case_sensitive = True
