@@ -9,10 +9,9 @@ A production-ready story narration system that automatically selects between:
 ## 📁 Files Created (7 Documentation Files)
 
 1. **STORY_READING_FLOW.md** - Complete flow documentation with diagrams
-2. **PIPER_SETUP_GUIDE.md** - Installation and setup instructions
-3. **API_USAGE_EXAMPLES.md** - Code examples (Curl, JavaScript, Python)
-4. **ARCHITECTURE_OVERVIEW.md** - System architecture and data flow
-5. **IMPLEMENTATION_SUMMARY.md** - What was built and how to test
+2. **API_USAGE_EXAMPLES.md** - Code examples (Curl, JavaScript, Python)
+3. **ARCHITECTURE_OVERVIEW.md** - System architecture and data flow
+4. **IMPLEMENTATION_SUMMARY.md** - What was built and how to test
 6. **QUICK_REFERENCE.md** - Quick lookup guide and checklists
 7. **VALIDATION_CHECKLIST.md** - Complete verification checklist
 
@@ -129,7 +128,6 @@ echo "Hello" | piper --model ~/.local/share/piper/models/en_US-amy-medium.onnx -
 |------|---------|----------|
 | QUICK_REFERENCE.md | One-page cheat sheet | Everyone |
 | STORY_READING_FLOW.md | Complete flow walkthrough | Developers |
-| PIPER_SETUP_GUIDE.md | Installation instructions | DevOps/Setup |
 | API_USAGE_EXAMPLES.md | Code examples | Developers |
 | ARCHITECTURE_OVERVIEW.md | System design | Architects/Senior Devs |
 | IMPLEMENTATION_SUMMARY.md | What was done | Project Managers |
@@ -210,7 +208,7 @@ ELEVENLABS_API_KEY=your_key_here
 ## 📝 Next Steps
 
 1. **Immediate**: Read QUICK_REFERENCE.md
-2. **Setup**: Follow PIPER_SETUP_GUIDE.md
+2. **Setup**: Use the production compose file and environment variables
 3. **Testing**: Run through test scenarios
 4. **Deployment**: Use provided Docker setup
 5. **Monitoring**: Track usage metrics
@@ -252,7 +250,7 @@ All documentation includes:
 ## 📚 Files to Read Now
 
 1. **Start here**: `QUICK_REFERENCE.md`
-2. **Setup**: `PIPER_SETUP_GUIDE.md`
+2. **Setup**: `docker-compose.prod.yml`
 3. **Deep dive**: `STORY_READING_FLOW.md`
 4. **Technical**: `ARCHITECTURE_OVERVIEW.md`
 5. **Testing**: `VALIDATION_CHECKLIST.md`

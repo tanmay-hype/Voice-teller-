@@ -353,7 +353,6 @@ media/                    ← Gets created at runtime
 
 Documentation/
   STORY_READING_FLOW.md   ← NEW: Flow documentation
-  PIPER_SETUP_GUIDE.md    ← NEW: Installation guide
   API_USAGE_EXAMPLES.md   ← NEW: API examples
 ```
 

@@ -3,6 +3,7 @@ Piper TTS Service - Free, open-source text-to-speech for default voice
 """
 import importlib.util
 import ntpath
+import httpx
 import subprocess
 import os
 import shutil
@@ -136,6 +137,28 @@ class PiperService:
         if self.config_path and not os.path.exists(self.config_path):
             raise Exception(f"Piper config file not found at {self.config_path}")
 
+    def _remote_service_url(self) -> str:
+        return (getattr(settings, "PIPER_SERVICE_URL", "") or os.environ.get("PIPER_SERVICE_URL", "")).strip().rstrip("/")
+
+    async def _call_remote_service(self, text: str) -> bytes | None:
+        service_url = self._remote_service_url()
+        if not service_url:
+            return None
+
+        speak_url = f"{service_url}/speak"
+        payload = {
+            "text": text,
+            "model_path": self.model_path,
+            "config_path": self.config_path,
+        }
+        print(f"   ➡️  Running Piper via HTTP service: {speak_url}")
+
+        async with httpx.AsyncClient(timeout=float(getattr(settings, "PIPER_SERVICE_TIMEOUT_SECONDS", 120))) as client:
+            response = await client.post(speak_url, json=payload)
+            if response.status_code >= 400:
+                raise Exception(f"Piper service returned {response.status_code}: {response.text}")
+            return response.content
+
     async def text_to_speech(self, text: str) -> bytes:
         """
         Convert text to speech using Piper
@@ -152,6 +175,13 @@ class PiperService:
             output_path = tmp.name
 
         try:
+            remote_audio = await self._call_remote_service(text)
+            if remote_audio:
+                print(f"   ✅ Piper HTTP service completed!")
+                print(f"      Audio size: {len(remote_audio)} bytes")
+                print(f"{'='*50}\n")
+                return remote_audio
+
             # Run Piper command
             cmd = self.piper_runner + [
                 "--model", self.model_path,

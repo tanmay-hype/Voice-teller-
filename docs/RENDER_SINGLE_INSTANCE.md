@@ -67,7 +67,6 @@ CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/0
 CORS_ORIGINS=https://your-netlify-site.netlify.app
 
 GEMINI_API_KEY=<your-key>
-OPENAI_API_KEY=<your-key>
 ELEVENLABS_API_KEY=<your-key>
 
 RESEND_API_KEY=<your-resend-api-key>

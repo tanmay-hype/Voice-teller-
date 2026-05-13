@@ -25,11 +25,17 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "supersecretkey_change_in_production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
-    
-    # External APIs
-    OPENAI_API_KEY: str = ""
     ELEVENLABS_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+
+    # Audio storage and Piper service
+    AUDIO_STORAGE_PROVIDER: str = "auto"
+    SUPABASE_URL: str = ""
+    SUPABASE_PUBLIC_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_STORAGE_BUCKET: str = "story-audio"
+    PIPER_SERVICE_URL: str = ""
+    PIPER_SERVICE_TIMEOUT_SECONDS: int = 120
     
     # Email Configuration
     # Resend is recommended for Render because it works via HTTPS API instead of SMTP.

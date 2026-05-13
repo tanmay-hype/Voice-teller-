@@ -268,7 +268,6 @@ POST /stories/read
 | `backend/api/stories.py` | API endpoint | ✅ UPDATED |
 | `frontend/src/pages/Stories.tsx` | UI | ✅ UPDATED |
 | `STORY_READING_FLOW.md` | Documentation | ✅ NEW |
-| `PIPER_SETUP_GUIDE.md` | Setup guide | ✅ NEW |
 | `API_USAGE_EXAMPLES.md` | API examples | ✅ NEW |
 | `ARCHITECTURE_OVERVIEW.md` | Architecture | ✅ NEW |
 

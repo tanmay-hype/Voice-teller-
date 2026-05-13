@@ -15,6 +15,7 @@ from api.deps import get_current_active_user
 from services.gemini_svc import gemini_svc
 from services.elevenlabs_svc import elevenlabs_svc
 from services.piper_svc import piper_svc
+from services.media_storage import media_storage_svc
 
 router = APIRouter(prefix="/stories", tags=["stories"])
 
@@ -33,7 +34,7 @@ async def create_story(
         if not result.scalars().first():
             raise HTTPException(status_code=404, detail="Voice not found")
 
-    # Generate story using OpenAI
+    # Generate story using Gemini or local fallback
     try:
         generated_content = await gemini_svc.generate_story(story_in.content)
     except Exception as e:
@@ -106,6 +107,8 @@ async def read_story_tts(
         # Determine which TTS service to use
         use_piper = not voice_uuid  # No voice_id = use default Piper
         elevenlabs_voice_id = None
+        audio_extension = "wav" if use_piper else "mp3"
+        audio_content_type = "audio/wav" if use_piper else "audio/mpeg"
 
         if not use_piper:
             # 🔥 CRITICAL: Look up Voice record to get ElevenLabs voice_id
@@ -127,17 +130,10 @@ async def read_story_tts(
             if not story:
                 raise HTTPException(status_code=404, detail="Story not found")
 
-            out_dir = os.path.join(os.getcwd(), "media", "stories")
-            os.makedirs(out_dir, exist_ok=True)
-            filename = f"{story_id}.mp3"
-            filepath = os.path.join(out_dir, filename)
-
-            # Return cached URL if exists
-            if os.path.exists(filepath):
-                story.audio_url = f"/media/stories/{filename}"
-                db.add(story)
-                await db.commit()
-                return JSONResponse({"url": story.audio_url})
+            if story.audio_url:
+                local_audio_path = story.audio_url.lstrip("/")
+                if story.audio_url.startswith("http") or os.path.exists(local_audio_path):
+                    return JSONResponse({"url": story.audio_url})
 
             # Generate audio with appropriate service
             if use_piper:
@@ -147,10 +143,13 @@ async def read_story_tts(
                 print("🎙️  Using ElevenLabs (cloned voice)...")
                 audio_bytes = await elevenlabs_svc.text_to_speech(text, elevenlabs_voice_id)
 
-            with open(filepath, "wb") as f:
-                f.write(audio_bytes)
-
-            story.audio_url = f"/media/stories/{filename}"
+            filename = f"{story_id}.{audio_extension}"
+            story.audio_url = await media_storage_svc.store_audio(
+                filename=filename,
+                audio_bytes=audio_bytes,
+                folder="stories",
+                content_type=audio_content_type,
+            )
             db.add(story)
             await db.commit()
 
@@ -162,12 +161,10 @@ async def read_story_tts(
         combined = (text + voice_key).encode("utf-8")
         h = hashlib.sha256(combined).hexdigest()
         
-        out_dir = os.path.join(os.getcwd(), "media", "cache")
-        os.makedirs(out_dir, exist_ok=True)
-        filename = f"{h}.mp3"
-        filepath = os.path.join(out_dir, filename)
+        filename = f"{h}.{audio_extension}"
+        local_cache_path = os.path.join(os.getcwd(), "media", "cache", filename)
 
-        if os.path.exists(filepath):
+        if not media_storage_svc._should_use_supabase() and os.path.exists(local_cache_path):
             return JSONResponse({"url": f"/media/cache/{filename}"})
 
         # Generate audio with appropriate service
@@ -178,10 +175,14 @@ async def read_story_tts(
             print("🎙️  Using ElevenLabs (cloned voice)...")
             audio_bytes = await elevenlabs_svc.text_to_speech(text, elevenlabs_voice_id)
 
-        with open(filepath, "wb") as f:
-            f.write(audio_bytes)
+        audio_url = await media_storage_svc.store_audio(
+            filename=filename,
+            audio_bytes=audio_bytes,
+            folder="cache",
+            content_type=audio_content_type,
+        )
 
-        return JSONResponse({"url": f"/media/cache/{filename}"})
+        return JSONResponse({"url": audio_url})
 
     except HTTPException:
         raise

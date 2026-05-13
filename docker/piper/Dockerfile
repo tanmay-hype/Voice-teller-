@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -10,4 +10,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 RUN mkdir -p /models /media
 
-CMD ["tail", "-f", "/dev/null"]
+COPY docker/piper/piper_server.py /workspace/piper_server.py
+
+EXPOSE 8080
+
+CMD ["python", "piper_server.py"]

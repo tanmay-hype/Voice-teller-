@@ -93,7 +93,6 @@ Created comprehensive documentation:
   - [x] Caching strategy
   - [x] Testing checklist
 
-- [x] PIPER_SETUP_GUIDE.md
   - [x] Installation for all OS
   - [x] Docker setup
   - [x] Environment config

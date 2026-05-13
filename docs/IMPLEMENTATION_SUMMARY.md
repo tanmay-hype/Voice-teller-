@@ -24,18 +24,13 @@ Generate Story → Select Voice → Read Aloud → [Decision: Use Piper or Eleve
    - Complete flow documentation
    - Architecture diagram
    - User journey
-   
-3. **`PIPER_SETUP_GUIDE.md`** - NEW
-   - Installation instructions for Piper
-   - Troubleshooting guide
-   - Production deployment
-   
-4. **`API_USAGE_EXAMPLES.md`** - NEW
+
+3. **`API_USAGE_EXAMPLES.md`** - NEW
    - Curl examples
    - JavaScript/TypeScript examples
    - Python examples
-   
-5. **`ARCHITECTURE_OVERVIEW.md`** - NEW
+
+4. **`ARCHITECTURE_OVERVIEW.md`** - NEW
    - System architecture diagrams
    - Data flow visualizations
    - Technology stack
@@ -305,7 +300,6 @@ Play audio
 ### Piper Not Found
 - Check installation: `which piper`
 - Add to PATH if needed
-- See `PIPER_SETUP_GUIDE.md`
 
 ### No Audio Generated
 - Check Piper executable path
@@ -328,7 +322,6 @@ Play audio
 
 All implementation documentation is in the project root:
 - `STORY_READING_FLOW.md` - Complete flow walkthrough
-- `PIPER_SETUP_GUIDE.md` - Installation & troubleshooting
 - `API_USAGE_EXAMPLES.md` - Code examples
 - `ARCHITECTURE_OVERVIEW.md` - System architecture
 - `VOICE_MODELS.md` (optional) - Available Piper models

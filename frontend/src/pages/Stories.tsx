@@ -23,6 +23,17 @@ const Stories: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const resolveMediaUrl = (url: string) => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+
+    const apiRoot = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
+      .replace(/\/?api\/?$/i, '')
+      .replace(/\/$/, '');
+
+    return `${apiRoot}${url.startsWith('/') ? url : `/${url}`}`;
+  };
+
   useEffect(() => {
     apiClient.get('/stories/')
       .then(res => setStories(res.data))
@@ -104,7 +115,7 @@ const Stories: React.FC = () => {
               {story.audio_url && (
                 <div className="mt-4 w-full">
                   <audio controls className="w-full">
-                    <source src={`http://localhost:8000${story.audio_url}`} />
+                    <source src={resolveMediaUrl(story.audio_url)} />
                   </audio>
                 </div>
               )}
@@ -201,7 +212,7 @@ const Stories: React.FC = () => {
               <div className="mt-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
                 <p className="text-xs text-slate-400 mb-2">Existing Narration</p>
                 <audio controls className="w-full">
-                  <source src={`http://localhost:8000${selectedStory.audio_url}`} />
+                  <source src={resolveMediaUrl(selectedStory.audio_url)} />
                 </audio>
               </div>
             )}
