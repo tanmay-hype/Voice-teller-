@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from urllib.parse import quote
@@ -5,6 +6,8 @@ from urllib.parse import quote
 import httpx
 
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class MediaStorageService:
@@ -39,7 +42,7 @@ class MediaStorageService:
             "Content-Type": content_type,
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(upload_url, content=audio_bytes, headers=headers)
             response.raise_for_status()
 
@@ -63,10 +66,10 @@ class MediaStorageService:
 
         if self._should_use_supabase():
             try:
-                print(f"☁️ Uploading audio to Supabase: {object_path}")
+                logger.info("Uploading audio to Supabase: %s", object_path)
                 return await self._upload_to_supabase(object_path, audio_bytes, content_type)
             except Exception as exc:
-                print(f"⚠️ Supabase audio upload failed, falling back to local media: {exc}")
+                logger.exception("Supabase audio upload failed, falling back to local media")
                 if self.provider == "supabase":
                     raise
 
