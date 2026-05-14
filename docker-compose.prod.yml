@@ -95,6 +95,8 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey_change_in_production}
+      PIPER_MODEL_PATH: /models/en_US-amy-medium.onnx
+      PIPER_CONFIG_PATH: /models/en_US-amy-medium.onnx.json
       PIPER_SERVICE_URL: http://piper:8080
       AUDIO_STORAGE_PROVIDER: ${AUDIO_STORAGE_PROVIDER:-supabase}
       SUPABASE_URL: ${SUPABASE_URL:-}
