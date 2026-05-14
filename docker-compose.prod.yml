@@ -105,6 +105,7 @@ services:
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-story-audio}
     volumes:
       - media_data:/app/media
+      - ./models:/models:ro
 
   worker:
     build:
