@@ -1,99 +1,89 @@
+import asyncio
 import logging
-
-import httpx
+import smtplib
+import ssl
+from email.message import EmailMessage
 
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def send_welcome_email(email: str, otp: str, website_name: str = "Voice Teller") -> bool:
+def _build_otp_message(email: str, otp: str, website_name: str) -> EmailMessage:
+    sender_email = settings.EMAIL_SENDER.strip()
+    message = EmailMessage()
+    message["Subject"] = f"Verify your email for {website_name}"
+    message["From"] = sender_email
+    message["To"] = email
+
+    plain_text = (
+        f"Hello,\n\n"
+        f"Your verification code for {website_name} is: {otp}\n\n"
+        f"This code expires in {settings.OTP_EXPIRY_MINUTES} minutes.\n"
+        "If you did not request this, you can ignore this email.\n"
+    )
+
+    html_content = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937; background: #f8fafc; padding: 24px;">
+        <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 18px; padding: 32px; border: 1px solid #e5e7eb;">
+          <h1 style="margin: 0 0 16px; font-size: 28px; color: #111827;">Verify your email</h1>
+          <p style="margin: 0 0 20px;">Thanks for registering with {website_name}. Use the one-time code below to complete your sign-up.</p>
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 20px; text-align: center; margin: 24px 0;">
+            <div style="font-size: 14px; color: #1d4ed8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.12em;">One-time password</div>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 0.35em; color: #0f172a;">{otp}</div>
+          </div>
+          <p style="margin: 0; color: #4b5563;">This code expires in {settings.OTP_EXPIRY_MINUTES} minutes.</p>
+          <p style="margin: 12px 0 0; color: #4b5563;">If you did not request this, you can ignore this email.</p>
+        </div>
+      </body>
+    </html>
     """
-    Send welcome email with OTP using Resend's HTTPS API.
-    """
+
+    message.set_content(plain_text)
+    message.add_alternative(html_content, subtype="html")
+    return message
+
+
+def _send_otp_email_sync(email: str, otp: str, website_name: str) -> None:
+    smtp_server = settings.SMTP_SERVER.strip()
+    smtp_port = int(settings.SMTP_PORT)
+    sender_email = settings.EMAIL_SENDER.strip()
+    sender_password = settings.EMAIL_PASSWORD.strip()
+
+    if not smtp_server or not sender_email:
+        raise RuntimeError("SMTP server and sender email are required")
+
+    message = _build_otp_message(email, otp, website_name)
+    is_local_smtp = smtp_server in {"localhost", "127.0.0.1"}
+    use_starttls = smtp_port in {587, 25} and not is_local_smtp
+
+    if not is_local_smtp and not sender_password:
+      raise RuntimeError("SMTP password is required for non-local delivery")
+
+    with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
+        server.ehlo()
+        if use_starttls:
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+
+        if sender_password and not is_local_smtp:
+            server.login(sender_email, sender_password)
+
+        server.send_message(message)
+
+
+async def send_otp_email(email: str, otp: str, website_name: str = "Voice Teller") -> bool:
+    """Send a verification OTP email using SMTP."""
     try:
-        api_key = getattr(settings, "RESEND_API_KEY", "").strip()
-        from_email = getattr(settings, "RESEND_FROM_EMAIL", "").strip()
-
-        if not api_key:
-            logger.error("Resend API key is missing")
-            return False
-        if not from_email:
-            logger.error("Resend sender address is missing")
-            return False
-
-        html_content = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white; text-align: center; margin-bottom: 20px;">
-                        <h1 style="margin: 0; font-size: 28px;">Welcome to {website_name}! 🎉</h1>
-                    </div>
-
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                        <h2 style="color: #667eea;">Hello {email.split("@")[0]},</h2>
-                        <p>Thank you for joining {website_name}! We're thrilled to have you on board.</p>
-                        
-                        <h3 style="color: #667eea; margin-top: 20px;">About {website_name}</h3>
-                        <p>
-                            {website_name} is an innovative platform that uses AI to transform your stories into 
-                            engaging audio narratives. Whether you're a storyteller, content creator, or simply love 
-                            stories, our platform empowers you to:
-                        </p>
-                        <ul style="line-height: 1.8;">
-                            <li><strong>Generate Stories:</strong> Create unique stories using advanced AI</li>
-                            <li><strong>Voice Narration:</strong> Convert stories to audio with natural-sounding voices</li>
-                            <li><strong>Voice Cloning:</strong> Use your own voice or choose from multiple voices</li>
-                            <li><strong>Share & Enjoy:</strong> Share your creations with the world</li>
-                        </ul>
-                    </div>
-
-                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; border-left: 5px solid #ffc107; margin-bottom: 20px;">
-                        <h3 style="color: #856404; margin-top: 0;">Your Email Verification Code</h3>
-                        <p style="color: #856404; margin-bottom: 10px;">To complete your registration, please enter the following OTP on the registration page:</p>
-                        <div style="background: #fff; padding: 15px; border-radius: 5px; text-align: center; margin: 15px 0;">
-                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #667eea;">{otp}</span>
-                        </div>
-                        <p style="color: #856404; font-size: 12px; margin: 10px 0;">⏱️ This code expires in 15 minutes</p>
-                    </div>
-
-                    <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; border-left: 5px solid #0066cc; margin-bottom: 20px;">
-                        <p style="margin: 0; color: #004499; font-size: 14px;">
-                            <strong>Security Note:</strong> Never share this OTP with anyone. Our team will never ask for your OTP via email.
-                        </p>
-                    </div>
-
-                    <div style="text-align: center; color: #666; font-size: 12px; padding-top: 20px; border-top: 1px solid #ddd;">
-                        <p>If you didn't create this account, please ignore this email.</p>
-                        <p>© 2024 {website_name}. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-        </html>
-        """
-
-        payload = {
-            "from": from_email,
-            "to": [email],
-            "subject": f"Welcome to {website_name}! Verify Your Email",
-            "html": html_content,
-        }
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
-
-        if response.status_code >= 400:
-            logger.error("Failed to send email to %s: %s %s", email, response.status_code, response.text)
-            return False
-
-        logger.info("Welcome email sent successfully to %s", email)
+        logger.info("Sending OTP email to %s via %s:%s", email, settings.SMTP_SERVER, settings.SMTP_PORT)
+        await asyncio.to_thread(_send_otp_email_sync, email, otp, website_name)
+        logger.info("OTP email sent successfully to %s", email)
         return True
-
-    except Exception as e:
-        logger.error(f"Failed to send email to {email}: {str(e)}")
+    except Exception:
+        logger.exception("Failed to send OTP email to %s", email)
         return False
+
+
+# Backward-compatible alias for any legacy imports.
+send_welcome_email = send_otp_email

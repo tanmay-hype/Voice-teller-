@@ -19,9 +19,6 @@ class UserRegisterRequest(UserBase):
 class UserVerifyOTPRequest(BaseModel):
     email: EmailStr
     otp: str
-    password: str
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
 
 class UserUpdate(BaseModel):
     password: Optional[str] = None

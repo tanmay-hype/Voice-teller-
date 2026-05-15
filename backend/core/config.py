@@ -38,10 +38,7 @@ class Settings(BaseSettings):
     PIPER_SERVICE_TIMEOUT_SECONDS: int = 120
     
     # Email Configuration
-    # Resend is recommended for Render because it works via HTTPS API instead of SMTP.
-    RESEND_API_KEY: str = ""
-    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
-    # Backward-compatible legacy SMTP fields (kept so existing env files do not break)
+    # Gmail SMTP is used for OTP delivery in both local development and production.
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     EMAIL_SENDER: str = "your-email@gmail.com"
@@ -49,6 +46,9 @@ class Settings(BaseSettings):
     
     # OTP Settings
     OTP_EXPIRY_MINUTES: int = 15
+    OTP_RESEND_COOLDOWN_SECONDS: int = 60
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_SECONDS: int = 900
     # Keep-alive (self-ping) settings to prevent platform idling
     KEEPALIVE_ENABLE: bool = False
     KEEPALIVE_INTERVAL_SECONDS: int = 300
